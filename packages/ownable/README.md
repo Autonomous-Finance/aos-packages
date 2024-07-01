@@ -1,4 +1,6 @@
-# Simple Process Ownership on AO
+# ownable
+
+## Simple Process Ownership & Access Control on AO
 
 This package facilitates the development of AO processes that require the ability to
 

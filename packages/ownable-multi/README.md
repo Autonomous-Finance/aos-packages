@@ -1,4 +1,6 @@
-# Multi-Owner Process Ownership on AO
+# ownable-multi
+
+## Multi-Owner Process Ownership & Access Control on AO
 
 This package facilitates the development of AO processes that require the ability to
 
@@ -45,7 +47,7 @@ _G.OWNERSHIP_RENOUNCER_PROCESS
 
 Handlers.list = {
   -- ...
-  
+
   -- the custom eval handlers MUST REMAIN AT THE TOP of the Handlers.list
   { 
     name = "customEvalMatchPositive",

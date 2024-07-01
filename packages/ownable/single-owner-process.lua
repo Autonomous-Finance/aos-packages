@@ -35,7 +35,6 @@ end
 
 -- INTERNAL FUNCTIONS
 
-
 internal.onlyOwner = function(msg)
   assert(msg.From == Owner, "Only the owner is allowed")
 end
