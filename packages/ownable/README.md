@@ -8,8 +8,9 @@ This package facilitates the development of AO processes that require the abilit
 ## Features
 
 1. An access control check based on **native process ownership** on AO. 
-2. Ownership transfer
-3. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
+2. Handler to get current owner
+3. Ownership transfer
+4. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
 
 ## Installation
 
@@ -45,6 +46,10 @@ _G.OWNERSHIP_RENOUNCER_PROCESS
 
 Handlers.list = {
   -- ...
+  { 
+    name = "getOwner", 
+    -- ... 
+  },
   { 
     name = "transferOwnership", 
     -- ... 

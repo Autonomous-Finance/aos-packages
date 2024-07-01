@@ -1,10 +1,12 @@
 local mod = {}
 
+local json = require "json"
 
+local internal = {}
 mod.load = function(initialOwners)
-  OWNERSHIP_RENOUNCER_PROCESS = '1VUCSI8biIC1z47GGrasXIN0DScGJ3NCMe6arcA8phs'
+  OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
-  -- accounts that can act as owners
+  -- accounts that can act as owners (key-value instead of array for simpler lookups)
   Owners = Owners or {
     [Owner] = true
   }
@@ -23,8 +25,10 @@ mod.load = function(initialOwners)
     - The process interface can be shut down and reopened by the whitelisted account
       regardless of who the last Eval caller (most recent process Owner) was
   ]]
+
+  -- reassign owner if one of the whitelisted owners calls an Eval
   Handlers.prepend(
-    'customEval',
+    'customEvalMatchPositive',
     function(msg)
       local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
       local isWhitelisted = Owners[msg.From]
@@ -35,12 +39,33 @@ mod.load = function(initialOwners)
     end
   )
 
+  -- error if a non-whitelisted owner calls an Eval
+  Handlers.prepend(
+    'customEvalMatchNegative',
+    function(msg)
+      local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
+      local isWhitelisted = Owners[msg.From]
+      return isEval and not isWhitelisted
+    end,
+    function(msg)
+      error("Only an owner is allowed")
+    end
+  )
+
+  Handlers.add(
+    "getOwners",
+    Handlers.utils.hasMatchingTag("Action", "GetOwners"),
+    function(msg)
+      ao.send({ Target = msg.From, Data = json.encode(internal.getOwnersArray()) })
+    end
+  )
+
   Handlers.add(
     "addOwner",
     Handlers.utils.hasMatchingTag("Action", "AddOwner"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.addOwner(msg)
+      internal.onlyOwner(msg)
+      internal.addOwner(msg)
     end
   )
 
@@ -48,8 +73,8 @@ mod.load = function(initialOwners)
     "removeOwner",
     Handlers.utils.hasMatchingTag("Action", "RemoveOwner"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.removeOwner(msg)
+      internal.onlyOwner(msg)
+      internal.removeOwner(msg)
     end
   )
 
@@ -61,7 +86,7 @@ mod.load = function(initialOwners)
     "renounceOwnership",
     Handlers.utils.hasMatchingTag("Action", "RenounceOwnership"),
     function(msg)
-      mod.onlyOwner(msg)
+      internal.onlyOwner(msg)
       Owners = nil
       Owner = OWNERSHIP_RENOUNCER_PROCESS
       msg.send({ Target = Owner, Action = 'MakeRenounce' })
@@ -69,10 +94,9 @@ mod.load = function(initialOwners)
   )
 end
 
-
 -- INTERNAL FUNCTIONS
 
-mod.onlyOwner = function(msg)
+internal.onlyOwner = function(msg)
   if Owners == nil then
     assert(msg.From == Owner, "Only the owner is allowed")
   else
@@ -80,16 +104,26 @@ mod.onlyOwner = function(msg)
   end
 end
 
-mod.addOwner = function(msg)
+internal.addOwner = function(msg)
   local newOwner = msg.Tags.NewOwner
   assert(newOwner ~= nil and type(newOwner) == 'string', 'NewOwner is required!')
   Owners[newOwner] = true
+  ao.send({ Target = ao.id, Event = "AddOwner", NewOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
 end
 
-mod.removeOwner = function(msg)
+internal.removeOwner = function(msg)
   local oldOwner = msg.Tags.OldOwner
   assert(oldOwner ~= nil and type(oldOwner) == 'string', 'OldOwner is required!')
   Owners[oldOwner] = nil
+  ao.send({ Target = ao.id, Event = "AddOwner", OldOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
+end
+
+internal.getOwnersArray = function()
+  local ownersArray = {}
+  for owner, _ in pairs(Owners) do
+    table.insert(ownersArray, owner)
+  end
+  return ownersArray
 end
 
 return mod

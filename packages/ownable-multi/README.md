@@ -8,8 +8,9 @@ This package facilitates the development of AO processes that require the abilit
 ## Features
 
 1. An access control check based on an **emulated shared ownership** at the application level
-2. Adding / Removing owners
-3. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
+2. Handler to get current owners
+3. Adding / Removing owners
+4. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
 
 ## Installation
 
@@ -44,8 +45,18 @@ _G.OWNERSHIP_RENOUNCER_PROCESS
 
 Handlers.list = {
   -- ...
+  
+  -- the custom eval handlers MUST REMAIN AT THE TOP of the Handlers.list
   { 
-    name = "customEval", -- this handler MUST REMAIN AT THE TOP of the Handlers.list
+    name = "customEvalMatchPositive",
+    -- ... 
+  },
+  { 
+    name = "customEvalMatchNegative",
+    -- ... 
+  },
+  { 
+    name = "getOwners", 
     -- ... 
   },
   { 

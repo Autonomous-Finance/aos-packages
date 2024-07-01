@@ -1,13 +1,24 @@
 local mod = {}
 
+local internal = {}
+
 mod.load = function()
-  OWNERSHIP_RENOUNCER_PROCESS = 'XDY51mdAWjuEYEWaBNVR6p4mNGLHMDVvo5vPJOqEszg'
+  OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+
+  Handlers.add(
+    "getOwner",
+    Handlers.utils.hasMatchingTag("Action", "GetOwner"),
+    function(msg)
+      ao.send({ Target = msg.From, Data = Owner })
+    end
+  )
+
   Handlers.add(
     "transferOwnership",
     Handlers.utils.hasMatchingTag("Action", "TransferOwnership"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.transfer(msg)
+      internal.onlyOwner(msg)
+      internal.transfer(msg)
     end
   )
 
@@ -15,23 +26,25 @@ mod.load = function()
     "renounceOwnership",
     Handlers.utils.hasMatchingTag("Action", "RenounceOwnership"),
     function(msg)
-      mod.onlyOwner(msg)
+      internal.onlyOwner(msg)
       Owner = OWNERSHIP_RENOUNCER_PROCESS
-      msg.send({ Target = Owner, Action = 'MakeRenounce' })
+      ao.send({ Target = Owner, Action = 'MakeRenounce' })
     end
   )
 end
 
 -- INTERNAL FUNCTIONS
 
-mod.onlyOwner = function(msg)
+
+internal.onlyOwner = function(msg)
   assert(msg.From == Owner, "Only the owner is allowed")
 end
 
-mod.transfer = function(msg)
+internal.transfer = function(msg)
   local newOwner = msg.Tags.NewOwner
   assert(newOwner ~= nil and type(newOwner) == 'string', 'NewOwner is required!')
   Owner = newOwner
+  ao.send({ Target = ao.id, Event = "TransferOwnership", NewOwner = Owner })
 end
 
 return mod
