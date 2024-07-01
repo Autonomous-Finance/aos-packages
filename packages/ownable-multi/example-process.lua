@@ -1,4 +1,4 @@
-local ownableMulti = require("@af/ownable-multi")
+local ownableMulti = require("@autonomousfinance/ownable-multi")
 
 local initialOwners = {
   -- wallet or process IDs, other than the spawner's ID which is implicitly one of the multiple owners

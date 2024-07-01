@@ -17,7 +17,7 @@ This package facilitates the development of AO processes that require the abilit
 ## Installation
 
 ```lua
-APM.install('@af/ownable')
+APM.install('@autonomousfinance/ownable')
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ These steps will add the necessary global state and Handlers.
 ```lua
 -- process.lua
 
-local ownable = require("@af/ownable")
+local ownable = require("@autonomousfinance/ownable")
 
 ownable.load()
 ```

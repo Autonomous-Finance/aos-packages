@@ -17,7 +17,7 @@ This package facilitates the development of AO processes that require the abilit
 ## Installation
 
 ```lua
-APM.install('@af/ownable-multi')
+APM.install('@autonomousfinance/ownable-multi')
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ APM.install('@af/ownable-multi')
 ```lua
 -- process.lua
 
-local ownableMulti = require("@af/ownable-multi")
+local ownableMulti = require("@autonomousfinance/ownable-multi")
 
 ocal initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
 ownableMulti.load(initialOwners)
