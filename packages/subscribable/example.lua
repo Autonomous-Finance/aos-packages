@@ -41,7 +41,7 @@ Handlers.add(
   function(msg)
     Counter = Counter + 1
     -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
-    sub.checkNotifyTopic('even-counter', internal.checkNotifyCounter(msg))
+    sub.checkNotifyTopic('even-counter', internal.checkNotifyCounter, msg.Timestamp)
   end
 )
 
@@ -51,7 +51,7 @@ Handlers.add(
   function(msg)
     Greeting = msg.Tags.Greeting
     -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
-    sub.checkNotifyTopic('gm-greeting', internal.checkNotifyGreeting(msg))
+    sub.checkNotifyTopic('gm-greeting', internal.checkNotifyGreeting, msg.Timestamp)
   end
 )
 
@@ -63,34 +63,28 @@ Handlers.add(
     Counter = msg.Tags.Counter
     -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
     sub.checkNotifyTopics({
-      ['even-counter'] = internal.checkNotifyCounter(msg),
-      ['gm-greeting'] = internal.checkNotifyGreeting(msg)
-    })
+      ['even-counter'] = internal.checkNotifyCounter,
+      ['gm-greeting'] = internal.checkNotifyGreeting
+    }, msg.Timestamp)
   end
 )
 
 -- INTERNAL
 
-internal.checkNotifyCounter = function(msg)
-  return function()
-    if Counter % 2 == 0 then
-      return true, {
-        Counter = Counter,
-        Timestamp = msg.Timestamp
-      }
-    end
-    return false
+internal.checkNotifyCounter = function()
+  if Counter % 2 == 0 then
+    return true, {
+      counter = Counter,
+    }
   end
+  return false
 end
 
-internal.checkNotifyGreeting = function(msg)
-  return function()
-    if string.find(string.lower(Greeting), "gm") then
-      return true, {
-        Greeting = Greeting,
-        Timestamp = msg.Timestamp
-      }
-    end
-    return false
+internal.checkNotifyGreeting = function()
+  if string.find(string.lower(Greeting), "gm") then
+    return true, {
+      greeting = Greeting,
+    }
   end
+  return false
 end

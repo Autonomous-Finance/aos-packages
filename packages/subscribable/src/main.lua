@@ -22,20 +22,21 @@ mod.load = function()
   )
 end
 
-mod.checkNotifyTopics = function(topicsAndChecks)
+mod.checkNotifyTopics = function(topicsAndChecks, timestamp)
   for topic, checkFn in pairs(topicsAndChecks) do
     local notify, payload = checkFn(topic)
+    payload.timestamp = timestamp
     if notify then
       dispatcher.dispatch(topic, payload)
     end
   end
 end
 
-mod.checkNotifyTopic = function(topic, checkFn)
+mod.checkNotifyTopic = function(topic, checkFn, timestamp)
   return mod.checkNotifyTopics({
     topic = topic,
     checkFn = checkFn
-  })
+  }, timestamp)
 end
 
 return mod
