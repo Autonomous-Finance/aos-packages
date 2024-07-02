@@ -40,6 +40,7 @@ Handlers.add(
   Handlers.utils.hasMatchingTag('Action', 'Increment'),
   function(msg)
     Counter = Counter + 1
+    -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
     sub.checkNotifyTopic('even-counter', internal.checkNotifyCounter(msg))
   end
 )
@@ -49,6 +50,7 @@ Handlers.add(
   Handlers.utils.hasMatchingTag('Action', 'SetGreeting'),
   function(msg)
     Greeting = msg.Tags.Greeting
+    -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
     sub.checkNotifyTopic('gm-greeting', internal.checkNotifyGreeting(msg))
   end
 )
@@ -59,6 +61,7 @@ Handlers.add(
   function(msg)
     Greeting = msg.Tags.Greeting
     Counter = msg.Tags.Counter
+    -- notifications are sent by the subscribable PACKAGE, based on a conditions defined by THIS process
     sub.checkNotifyTopics({
       ['even-counter'] = internal.checkNotifyCounter(msg),
       ['gm-greeting'] = internal.checkNotifyGreeting(msg)
