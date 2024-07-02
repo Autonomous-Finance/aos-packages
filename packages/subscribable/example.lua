@@ -3,6 +3,8 @@ local internal = {}
 
 sub.load() -- LOAD SUBSCRIBABLE CAPABILITIES
 --[[
+  These capabilties include
+
   Handlers:
     - "registerSubscriber"
     - "receivePayment"
@@ -12,14 +14,12 @@ sub.load() -- LOAD SUBSCRIBABLE CAPABILITIES
     - checkNotifyTopics()
 ]]
 
-Counter = Counter or 0
 
-Greeting = Greeting or "Hello"
 
 --[[
-  BUSINESS LOGIC
+  EXAMPLE BUSINESS LOGIC
 
-  This Process tracks a Counter and a Greeting.
+  This Process tracks a Counter and a Greeting that can be publicly updated.
 
   EVENTS that are interesting to subscribers
     - Counter is even
@@ -30,6 +30,10 @@ Greeting = Greeting or "Hello"
     - "setGreeting" -> Greeting is set
     - "updateAll" -> Counter and Greeting are updated
 ]]
+
+Counter = Counter or 0
+
+Greeting = Greeting or "Hello"
 
 Handlers.add(
   'increment',
