@@ -1,3 +1,4 @@
+-- version 1.0.2
 local mod = {}
 
 local json = require "json"
@@ -53,16 +54,16 @@ mod.load = function(initialOwners)
   )
 
   Handlers.add(
-    "ownable-multi.getOwners",
-    Handlers.utils.hasMatchingTag("Action", "GetOwners"),
+    "ownable-multi.Get-Owners",
+    Handlers.utils.hasMatchingTag("Action", "Get-Owners"),
     function(msg)
       ao.send({ Target = msg.From, Data = json.encode(internal.getOwnersArray()) })
     end
   )
 
   Handlers.add(
-    "ownable-multi.addOwner",
-    Handlers.utils.hasMatchingTag("Action", "AddOwner"),
+    "ownable-multi.Add-Owner",
+    Handlers.utils.hasMatchingTag("Action", "Add-Owner"),
     function(msg)
       internal.onlyOwner(msg)
       internal.addOwner(msg)
@@ -70,8 +71,8 @@ mod.load = function(initialOwners)
   )
 
   Handlers.add(
-    "ownable-multi.removeOwner",
-    Handlers.utils.hasMatchingTag("Action", "RemoveOwner"),
+    "ownable-multi.Remove-Owner",
+    Handlers.utils.hasMatchingTag("Action", "Remove-Owner"),
     function(msg)
       internal.onlyOwner(msg)
       internal.removeOwner(msg)
@@ -83,8 +84,8 @@ mod.load = function(initialOwners)
     will be able to call owner-gated handlers anymore.
   ]]
   Handlers.add(
-    "ownable-multi.renounceOwnership",
-    Handlers.utils.hasMatchingTag("Action", "RenounceOwnership"),
+    "ownable-multi.Renounce-Ownership",
+    Handlers.utils.hasMatchingTag("Action", "Renounce-Ownership"),
     function(msg)
       internal.onlyOwner(msg)
       OwnableMulti_Owners = nil
@@ -105,17 +106,29 @@ internal.onlyOwner = function(msg)
 end
 
 internal.addOwner = function(msg)
-  local newOwner = msg.Tags.NewOwner
-  assert(newOwner ~= nil and type(newOwner) == 'string', 'NewOwner is required!')
+  local newOwner = msg.Tags["New-Owner"]
+  assert(newOwner ~= nil and type(newOwner) == 'string', '"New-Owner" is required!')
   OwnableMulti_Owners[newOwner] = true
-  ao.send({ Target = ao.id, Event = "AddOwner", NewOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
+  ao.send({
+    Target = ao.id,
+    Event = "Add-Owner",
+    ["New-Owner"] = Owner,
+    ["Current-Owners"] = json.encode(internal
+      .getOwnersArray())
+  })
 end
 
 internal.removeOwner = function(msg)
-  local oldOwner = msg.Tags.OldOwner
-  assert(oldOwner ~= nil and type(oldOwner) == 'string', 'OldOwner is required!')
+  local oldOwner = msg.Tags["Old-Owner"]
+  assert(oldOwner ~= nil and type(oldOwner) == 'string', '"Old-Owner" is required!')
   OwnableMulti_Owners[oldOwner] = nil
-  ao.send({ Target = ao.id, Event = "AddOwner", OldOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
+  ao.send({
+    Target = ao.id,
+    Event = "Add-Owner",
+    ["Old-Owner"] = Owner,
+    ["Current-Owners"] = json.encode(internal
+      .getOwnersArray())
+  })
 end
 
 internal.getOwnersArray = function()
