@@ -9,23 +9,39 @@ local topicsCfg = {}
 
 mod.load = function()
   Handlers.add(
-    "RegisterSubscriber",
+    "subscribable.Register-Subscriber",
     Handlers.utils.hasMatchingTag("Action", "Register-Subscriber"),
     subs.registerSubscriber
   )
 
   Handlers.add(
-    "CreditNotice",
+    "subscribable.Receive-Payment",
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
           and msg.From == AOCRED
     end,
     subs.receivePayment
   )
+
+  Handlers.add(
+    "subscribable.Get-Topics",
+    Handlers.utils.hasMatchingTag("Action", "Get-Topics"),
+    function()
+      return subs.getTopics()
+    end
+  )
 end
 
 mod.configTopics = function(cfg)
   topicsCfg = cfg
+end
+
+mod.getTopics = function()
+  local topics = {}
+  for topic, _ in pairs(topicsCfg) do
+    table.insert(topics, topic)
+  end
+  return topics
 end
 
 -- dispatch without check

@@ -13,7 +13,7 @@ local internal = {}
     }
   }
 ]]
-Subscriptions = Subscriptions or {}
+Subscribable_Subscriptions = Subscribable_Subscriptions or {}
 
 
 --[[
@@ -24,7 +24,7 @@ Subscriptions = Subscriptions or {}
     }
   }
 ]]
-Balances = Balances or {}
+Subscribable_Balances = Subscribable_Balances or {}
 
 function subs.registerSubscriber(msg)
   local processId = msg.Tags['Subscriber-Process-Id']
@@ -37,15 +37,15 @@ function subs.registerSubscriber(msg)
     error('process ' ..
       processId ..
       ' already registered as a subscriber to topic ' ..
-      topic .. ' having ownerID = ' .. Subscriptions[processId].ownerID)
+      topic .. ' having ownerID = ' .. Subscribable_Subscriptions[processId].ownerID)
   end
 
-  Subscriptions[processId] = Subscriptions[processId] or {
+  Subscribable_Subscriptions[processId] = Subscribable_Subscriptions[processId] or {
     ownerId = ownerId,
     topics = {}
   }
 
-  table.insert(Subscriptions[processId].topics, topic)
+  table.insert(Subscribable_Subscriptions[processId].topics, topic)
 
   ao.send({
     Target = ao.id,
@@ -63,7 +63,7 @@ end
 
 function subs.notifySubscribers(topic, payload)
   local targets = {}
-  for k, v in pairs(Subscriptions) do
+  for k, v in pairs(Subscribable_Subscriptions) do
     if internal.isSubscribedToTopic(k, topic) and internal.hasBalance(v.ownerID) then
       table.insert(targets, k)
     end
@@ -81,30 +81,30 @@ end
 -- INTERNAL
 
 internal.updateBalance = function(ownerId, tokenId, amount, isCredit)
-  if not isCredit and not Balances[ownerId] then
+  if not isCredit and not Subscribable_Balances[ownerId] then
     error('No balance entry exists for owner ' .. ownerId .. ' to be debited')
   end
 
-  Balances[ownerId] = Balances[ownerId] or {
+  Subscribable_Balances[ownerId] = Subscribable_Balances[ownerId] or {
     tokenId = tokenId,
     amount = '0'
   }
 
-  local current = bint(Balances[ownerId].amount)
+  local current = bint(Subscribable_Balances[ownerId].amount)
   local diff = isCredit and bint(amount) or -bint(amount)
-  Balances[ownerId].amount = tostring(current + diff)
+  Subscribable_Balances[ownerId].amount = tostring(current + diff)
 end
 
 internal.isSubscribedToTopic = function(processId, topic)
-  if not Subscriptions[processId] then return false end
-  for _, t in pairs(Subscriptions[processId].topics) do
+  if not Subscribable_Subscriptions[processId] then return false end
+  for _, t in pairs(Subscribable_Subscriptions[processId].topics) do
     if t == topic then return true end
   end
   return false
 end
 
 internal.hasBalance = function(ownerId)
-  return Balances[ownerId] and bint(Balances[ownerId]) > 0
+  return Subscribable_Balances[ownerId] and bint(Subscribable_Balances[ownerId]) > 0
 end
 
 return subs
