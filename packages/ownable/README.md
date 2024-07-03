@@ -35,29 +35,37 @@ local ownable = require("@autonomousfinance/ownable")
 ownable.load()
 ```
 
-## Conflict Considerations
+## Overriding & Conflict Considerations
 
-⚠️ ❗️ Be mindful of potential conflicts in terms of **global state** and the **`Handlers.list`**
+You can override handlers added by this package. Just use
+```lua
+Handlers.add(<package_handler_name>)
+```
+in your own code, after you've executed 
+```lua
+ownable.load()
+```
+
+
+⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of the **`Handlers.list`**
 
 Both your application code and other packages you install via APM, can potentially conflict with this package.
 
 So, if you decide to use this package, consider the following
 
 ```lua
-_G.OWNERSHIP_RENOUNCER_PROCESS
-
 Handlers.list = {
   -- ...
   { 
-    name = "getOwner", 
+    name = "ownable.getOwner", 
     -- ... 
   },
   { 
-    name = "transferOwnership", 
+    name = "ownable.transferOwnership", 
     -- ... 
   },
   { 
-    name = "renounceOwnership", 
+    name = "ownable.renounceOwnership", 
     -- ... 
   }
   -- ...

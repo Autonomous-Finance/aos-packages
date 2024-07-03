@@ -3,17 +3,17 @@ local mod = {}
 local json = require "json"
 
 local internal = {}
-mod.load = function(initialOwners)
-  OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+local OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
+mod.load = function(initialOwners)
   -- accounts that can act as owners (key-value instead of array for simpler lookups)
-  Owners = Owners or {
+  OwnableMulti_Owners = OwnableMulti_Owners or {
     [Owner] = true
   }
 
   if initialOwners then
     for _, owner in ipairs(initialOwners) do
-      Owners[owner] = true
+      OwnableMulti_Owners[owner] = true
     end
   end
 
@@ -28,10 +28,10 @@ mod.load = function(initialOwners)
 
   -- reassign owner if one of the whitelisted owners calls an Eval
   Handlers.prepend(
-    'customEvalMatchPositive',
+    'ownable-multi.customEvalMatchPositive',
     function(msg)
       local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
-      local isWhitelisted = Owners[msg.From]
+      local isWhitelisted = OwnableMulti_Owners[msg.From]
       return isEval and isWhitelisted and "continue" or false
     end,
     function(msg)
@@ -41,10 +41,10 @@ mod.load = function(initialOwners)
 
   -- error if a non-whitelisted owner calls an Eval
   Handlers.prepend(
-    'customEvalMatchNegative',
+    'ownable-multi.customEvalMatchNegative',
     function(msg)
       local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
-      local isWhitelisted = Owners[msg.From]
+      local isWhitelisted = OwnableMulti_Owners[msg.From]
       return isEval and not isWhitelisted
     end,
     function(msg)
@@ -53,7 +53,7 @@ mod.load = function(initialOwners)
   )
 
   Handlers.add(
-    "getOwners",
+    "ownable-multi.getOwners",
     Handlers.utils.hasMatchingTag("Action", "GetOwners"),
     function(msg)
       ao.send({ Target = msg.From, Data = json.encode(internal.getOwnersArray()) })
@@ -61,7 +61,7 @@ mod.load = function(initialOwners)
   )
 
   Handlers.add(
-    "addOwner",
+    "ownable-multi.addOwner",
     Handlers.utils.hasMatchingTag("Action", "AddOwner"),
     function(msg)
       internal.onlyOwner(msg)
@@ -70,7 +70,7 @@ mod.load = function(initialOwners)
   )
 
   Handlers.add(
-    "removeOwner",
+    "ownable-multi.removeOwner",
     Handlers.utils.hasMatchingTag("Action", "RemoveOwner"),
     function(msg)
       internal.onlyOwner(msg)
@@ -83,11 +83,11 @@ mod.load = function(initialOwners)
     will be able to call owner-gated handlers anymore.
   ]]
   Handlers.add(
-    "renounceOwnership",
+    "ownable-multi.renounceOwnership",
     Handlers.utils.hasMatchingTag("Action", "RenounceOwnership"),
     function(msg)
       internal.onlyOwner(msg)
-      Owners = nil
+      OwnableMulti_Owners = nil
       Owner = OWNERSHIP_RENOUNCER_PROCESS
       msg.send({ Target = Owner, Action = 'MakeRenounce' })
     end
@@ -97,30 +97,30 @@ end
 -- INTERNAL FUNCTIONS
 
 internal.onlyOwner = function(msg)
-  if Owners == nil then
+  if OwnableMulti_Owners == nil then
     assert(msg.From == Owner, "Only the owner is allowed")
   else
-    assert(Owners[msg.From], "Only an owner is allowed")
+    assert(OwnableMulti_Owners[msg.From], "Only an owner is allowed")
   end
 end
 
 internal.addOwner = function(msg)
   local newOwner = msg.Tags.NewOwner
   assert(newOwner ~= nil and type(newOwner) == 'string', 'NewOwner is required!')
-  Owners[newOwner] = true
+  OwnableMulti_Owners[newOwner] = true
   ao.send({ Target = ao.id, Event = "AddOwner", NewOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
 end
 
 internal.removeOwner = function(msg)
   local oldOwner = msg.Tags.OldOwner
   assert(oldOwner ~= nil and type(oldOwner) == 'string', 'OldOwner is required!')
-  Owners[oldOwner] = nil
+  OwnableMulti_Owners[oldOwner] = nil
   ao.send({ Target = ao.id, Event = "AddOwner", OldOwner = Owner, CurrentOwners = json.encode(internal.getOwnersArray()) })
 end
 
 internal.getOwnersArray = function()
   local ownersArray = {}
-  for owner, _ in pairs(Owners) do
+  for owner, _ in pairs(OwnableMulti_Owners) do
     table.insert(ownersArray, owner)
   end
   return ownersArray

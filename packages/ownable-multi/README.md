@@ -34,43 +34,50 @@ ocal initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process
 ownableMulti.load(initialOwners)
 ```
 
-## Conflict Considerations
+## Overriding & Conflict Considerations
 
-⚠️ ❗️ Be mindful of potential conflicts in terms of **global state** and the **`Handlers.list`**
+You can override handlers added by this package. Just use
+```lua
+Handlers.add(<package_handler_name>)
+```
+in your own code, after you've executed 
+```lua
+ownable.load()
+```
+
+⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of the **`Handlers.list`**
 
 Both your application code and other packages you install via APM, can potentially conflict with this package.
 
 So, if you decide to use this package, consider the following
 
 ```lua
-_G.OWNERSHIP_RENOUNCER_PROCESS
-
 Handlers.list = {
   -- ...
 
   -- the custom eval handlers MUST REMAIN AT THE TOP of the Handlers.list
   { 
-    name = "customEvalMatchPositive",
+    name = "ownable-multi.customEvalMatchPositive",
     -- ... 
   },
   { 
-    name = "customEvalMatchNegative",
+    name = "ownable-multi.customEvalMatchNegative",
     -- ... 
   },
   { 
-    name = "getOwners", 
+    name = "ownable-multi.getOwners", 
     -- ... 
   },
   { 
-    name = "addOwner", 
+    name = "ownable-multi.addOwner", 
     -- ... 
   },
   { 
-    name = "removeOwner", 
+    name = "ownable-multi.removeOwner", 
     -- ... 
   },
   { 
-    name = "renounceOwnership", 
+    name = "ownable-multi.renounceOwnership", 
     -- ... 
   }
   -- ...
@@ -79,11 +86,11 @@ Handlers.list = {
 
 ## How It Works
 
-The native `Owner` changes on each `Eval` performed by one of the IDs in `Owners`.
+The native `Owner` changes on each `Eval` performed by one of the IDs in `OwnableMulti_Owners`.
 
 This approach allows for whitelisted wallets to interact with the process via the aos CLI as if they are regular owners
    - Results from query `Eval`'s like `aos> Owner` are displayed immediately in the CLI
    - The last `Eval` sender becomes the current process Owner
    - The process interface can be shut down and reopened by any whitelisted account regardless of who the last `Eval` sender was
 
-The **initial Owner** (that spawned the process) is always included in the whitelist, but **can be removed** by another account from `Owners`.
+The **initial Owner** (that spawned the process) is always included in the whitelist, but **can be removed** by another account from `OwnableMulti_Owners`.

@@ -1,12 +1,11 @@
 local mod = {}
 
 local internal = {}
+local OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
 mod.load = function()
-  OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
-
   Handlers.add(
-    "getOwner",
+    "ownable.getOwner",
     Handlers.utils.hasMatchingTag("Action", "GetOwner"),
     function(msg)
       ao.send({ Target = msg.From, Data = Owner })
@@ -14,7 +13,7 @@ mod.load = function()
   )
 
   Handlers.add(
-    "transferOwnership",
+    "ownable.transferOwnership",
     Handlers.utils.hasMatchingTag("Action", "TransferOwnership"),
     function(msg)
       internal.onlyOwner(msg)
@@ -23,7 +22,7 @@ mod.load = function()
   )
 
   Handlers.add(
-    "renounceOwnership",
+    "ownable.renounceOwnership",
     Handlers.utils.hasMatchingTag("Action", "RenounceOwnership"),
     function(msg)
       internal.onlyOwner(msg)

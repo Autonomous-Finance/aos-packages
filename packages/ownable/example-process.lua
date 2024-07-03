@@ -1,4 +1,4 @@
-local ownable = require("@autonomousfinance/ownable")
+local ownable = require("@af/ownable")
 
 ownable.load() -- handlers and global variables are added
 
