@@ -1,15 +1,62 @@
+# subscribable
+
+## Subscription provider capabilities for your AO process
+
+This package facilitates the development of AO processes that require the ability to register subscribers for specific topics and dispatch messages to them.
+This solution is based on simple lua tables. 
+If you require an sql-based solution, please refer to the [subscribable-db](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/subscribable-db/) package.
+
 ## Features
 
-- immediately notifies on qualifying event
-- check for event explicity, or notify without a check
-- supports topics
+### Handlers
 
-## TODO
+1. register subscriber
+2. receive payment from subscriber (spam-protection / monetization) (only AOCRED)
+3. get available topics
 
-- Subscriptions and Balances - data structures for efficiency
-- (v2) balance subtraction "pay as you go", since we don't use cron and can't as easily predict outcomes
+### Functions
 
+4. configure topics w/ corresponding event checks
+5. notify subscribers to given topics
+6. notify subscribers to given topics with event check
 
+## Installation
+
+```lua
+APM.install('@autonomousfinance/subscribable')
+```
+
+## Usage
+
+1. Require the `subscribable` module in your Lua script
+2. On this module, execute `.load()`
+3. On this module, initially and whenever needed, execute `.configTopics()` to configure the supported topics and corresponding event checks
+4. On this module, whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
+
+```lua
+-- process.lua
+
+local sub = require("@autonomousfinance/subscribable")
+
+sub.load()
+sub.configTopics({
+  {'even-counter', function() Counter % 2 == 0 end },
+})
+
+Counter = Counter = 0
+
+-- Updates to Counter
+Handlers.add(
+  'increment',
+  Handlers.utils.hasMatchingTag("Action", "Increment"),
+  function()
+    -- state change
+    Counter = Counter + 1
+    -- notifications
+    sub.checkNotifyTopic('even-counter') -- will send out notifications if configured event check returns true
+  end
+)
+```
 
 ## Overriding & Conflict Considerations
 
@@ -51,3 +98,16 @@ Handlers.list = {
   -- ...
 }
 ```
+
+## Persistence
+
+This package uses simple lua tables to persist balances and subscriptions.
+
+A highly scalable alternative would be to use sqlite tables. The downside there is some additional logical complexity and more verbose code, especially when extending the basic functionality.
+
+We've built this non-sql version for the purpose of developer convenience, for cases where it would be scalable enough.
+
+## TODO
+
+- Subscriptions and Balances - reconsider data structures (subscriptions and balances) for maximum efficiency
+- (v2) balance subtraction "pay as you go", since we don't use cron and can't as easily predict outcomes

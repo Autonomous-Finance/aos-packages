@@ -23,7 +23,7 @@ APM.install('@autonomousfinance/ownable')
 ## Usage
 
 1. Require the `ownable` module in your Lua script
-2. Execute `ownable.load()`
+2. On this module, execute `.load()`
 
 These steps will add the necessary global state and Handlers.
 

@@ -22,8 +22,8 @@ APM.install('@autonomousfinance/ownable-multi')
 
 ## Usage
 
-1. Require the `ownable` module in your Lua script
-2. Execute `ownable.multi(initialOwners)` with an optional initial list of owner accounts
+1. Require the `ownable-multi` module in your Lua script
+2. On this module, execute `.load(initialOwners)` with an optional initial list of owner accounts
 
 ```lua
 -- process.lua
