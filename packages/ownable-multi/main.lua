@@ -1,6 +1,7 @@
--- version 1.2.0
 local function newmodule(initialOwners)
-  local mod = {}
+  local mod = {
+    version = '1.2.1'
+  }
 
   local json = require "json"
 

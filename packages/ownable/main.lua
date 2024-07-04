@@ -1,5 +1,6 @@
--- version 1.2.0
-local mod = {}
+local mod = {
+  version = '1.2.1'
+}
 
 local OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
