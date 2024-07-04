@@ -1,17 +1,22 @@
-local mod = {}
-
-local subs = require "subscriptions"
-local dispatcher = require "dispatcher"
+-- version 1.2.0
+local pkg = {}
 
 local AOCRED = 'Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc'
 
-local topicsCfg = {}
+-- mod acts like the package "global", we assign to it the state and functions of the package
+pkg = require "subscriptions" (pkg)
 
-mod.load = function()
+pkg.load = function()
   Handlers.add(
     "subscribable.Register-Subscriber",
     Handlers.utils.hasMatchingTag("Action", "Register-Subscriber"),
-    subs.registerSubscriber
+    pkg.handleRegisterSubscriber
+  )
+
+  Handlers.add(
+    'subscribable.Get-Subscriber',
+    Handlers.utils.hasMatchingTag('Action', 'Get-Subscriber'),
+    pkg.handleGetSubscriber
   )
 
   Handlers.add(
@@ -20,59 +25,26 @@ mod.load = function()
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
           and msg.From == AOCRED
     end,
-    subs.receivePayment
+    pkg.handleRceivePayment
   )
 
   Handlers.add(
-    "subscribable.Get-Topics",
-    Handlers.utils.hasMatchingTag("Action", "Get-Topics"),
-    function()
-      return subs.getTopics()
-    end
+    "subscribable.Get-Available-Topics",
+    Handlers.utils.hasMatchingTag("Action", "Get-Available-Topics"),
+    pkg.getAvailableTopics
+  )
+
+  Handlers.add(
+    'subscribable.Subscribe-To-Topics',
+    Handlers.utils.hasMatchingTag('Action', 'Subscribe-To-Topics'),
+    pkg.handleSubscribeToTopics
+  )
+
+  Handlers.add(
+    'subscribable.Unsubscribe-From-Topics',
+    Handlers.utils.hasMatchingTag('Action', 'Unsubscribe-From-Topics'),
+    pkg.handleUnsubscribeFromTopics
   )
 end
 
-mod.configTopics = function(cfg)
-  topicsCfg = cfg
-end
-
-mod.getTopics = function()
-  local topics = {}
-  for topic, _ in pairs(topicsCfg) do
-    table.insert(topics, topic)
-  end
-  return topics
-end
-
--- dispatch without check
-
-mod.notifyTopics = function(topicsAndPayloads, timestamp)
-  for topic, payload in pairs(topicsAndPayloads) do
-    payload.timestamp = timestamp
-    dispatcher.dispatch(topic, payload)
-  end
-end
-
-mod.notifyTopic = function(topic, payload, timestamp)
-  return mod.notifyTopics({
-    [topic] = payload
-  }, timestamp)
-end
-
--- dispatch with configured checks
-
-mod.checkNotifyTopics = function(topics, timestamp)
-  for _, topic in ipairs(topics) do
-    local notify, payload = topicsCfg[topic].checkFn()
-    payload.timestamp = timestamp
-    if notify then
-      dispatcher.dispatch(topic, payload)
-    end
-  end
-end
-
-mod.checkNotifyTopic = function(topic, timestamp)
-  return mod.checkNotifyTopics({ topic }, timestamp)
-end
-
-return mod
+return pkg

@@ -1,19 +1,4 @@
-local sub = require 'src.main'
 local internal = {}
-
-sub.load() -- LOAD SUBSCRIBABLE CAPABILITIES
---[[
-  These capabilties include
-
-  Handlers:
-    - "registerSubscriber"
-    - "receivePayment"
-
-  Sending notifications:
-    - checkNotifyTopic()
-    - checkNotifyTopics()
-]]
-
 
 
 --[[
@@ -36,7 +21,9 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
--- Define CUSTOM TOPICS and corresponding CHECK FUNCTION
+local sub = require 'build.main' -- LOAD SUBSCRIBABLE CAPABILITIES
+
+-- Define CUSTOM TOPICS and corresponding CHECK FUNCTIONS
 -- Check Functions use global state to determine if the event is occurring
 sub.configTopics({
   ['even-counter'] = internal.checkNotifyCounter,
@@ -44,7 +31,7 @@ sub.configTopics({
 })
 
 Handlers.add(
-  'increment',
+  'subscribable.Increment',
   Handlers.utils.hasMatchingTag('Action', 'Increment'),
   function(msg)
     Counter = Counter + 1
@@ -54,8 +41,8 @@ Handlers.add(
 )
 
 Handlers.add(
-  'setGreeting',
-  Handlers.utils.hasMatchingTag('Action', 'SetGreeting'),
+  'subscribable.Set-Greeting',
+  Handlers.utils.hasMatchingTag('Action', 'Set-Greeting'),
   function(msg)
     Greeting = msg.Tags.Greeting
     -- Check and send notifications if event occurs
@@ -64,8 +51,8 @@ Handlers.add(
 )
 
 Handlers.add(
-  'setGreetingAsGmVariant',
-  Handlers.utils.hasMatchingTag('Action', 'SetGreetingAsGmVariant'),
+  'subscribable.Set-Greeting-As-Gm-Variant',
+  Handlers.utils.hasMatchingTag('Action', 'Set-Greeting-As-Gm-Variant'),
   function(msg)
     Greeting = 'GM-' .. tostring(math.random(1000, 9999))
     -- We know for sure that notifications should be sent --> this helps to avoid performing redundant computation
@@ -74,16 +61,16 @@ Handlers.add(
 )
 
 Handlers.add(
-  'updateAll',
-  Handlers.utils.hasMatchingTag('Action', 'UpdateAll'),
+  'subscribable.Update-All',
+  Handlers.utils.hasMatchingTag('Action', 'Update-All'),
   function(msg)
     Greeting = msg.Tags.Greeting
     Counter = msg.Tags.Counter
     -- Check for multiple topics and send notifications if event occurs
-    sub.checkNotifyTopics({
-      ['even-counter'] = internal.checkNotifyCounter,
-      ['gm-greeting'] = internal.checkNotifyGreeting
-    }, msg.Timestamp)
+    sub.checkNotifyTopics(
+      { 'even-counter', 'gm-greeting' },
+      msg.Timestamp
+    )
   end
 )
 

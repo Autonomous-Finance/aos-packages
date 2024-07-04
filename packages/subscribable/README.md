@@ -1,6 +1,6 @@
 # subscribable
 
-## Subscription provider capabilities for your AO process
+## Subscription provider capabilities for an AO process
 
 This package facilitates the development of AO processes that require the ability to register subscribers for specific topics and dispatch messages to them.
 This solution is based on simple lua tables. 
@@ -13,8 +13,9 @@ If you require an sql-based solution, please refer to the [subscribable-db](http
 1. register subscriber
 2. receive payment from subscriber (spam-protection / monetization) (only AOCRED)
 3. get available topics
+4. subscribe/unsubscribe a registered subscriber w/ specific topics
 
-### Functions
+### API
 
 4. configure topics w/ corresponding event checks
 5. notify subscribers to given topics
@@ -38,7 +39,22 @@ APM.install('@autonomousfinance/subscribable')
 
 local sub = require("@autonomousfinance/subscribable")
 
-sub.load()
+--[[
+  These capabilties include
+
+  Handlers:
+    - "registerSubscriber"
+    - "receivePayment"
+
+  API
+    - configureTopics()
+    - checkNotifyTopic()
+    - checkNotifyTopics()
+    - getRegisteredSubscriber()
+    - ...
+]]
+
+
 sub.configTopics({
   {'even-counter', function() Counter % 2 == 0 end },
 })
@@ -66,7 +82,7 @@ Handlers.add(<package_handler_name>)
 ```
 in your own code, after you've executed 
 ```lua
-ownable.load()
+sub.load()
 ```
 
 ⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of **global state** and the **`Handlers.list`**
@@ -92,7 +108,11 @@ Handlers.list = {
     -- ... 
   },
   { 
-    name = "subscribable.Get-Topics",
+    name = "subscribable.Get-Subscriber",
+    -- ... 
+  }
+  { 
+    name = "subscribable.Get-Available-Topics",
     -- ... 
   }
   -- ...
@@ -108,6 +128,8 @@ A highly scalable alternative would be to use sqlite tables. The downside there 
 We've built this non-sql version for the purpose of developer convenience, for cases where it would be scalable enough.
 
 ## TODO
+
+- data validation -> multiple topics passed in on registration / on subscription / on unsubscription
 
 - Subscriptions and Balances - reconsider data structures (subscriptions and balances) for maximum efficiency
 - (v2) balance subtraction "pay as you go", since we don't use cron and can't as easily predict outcomes
