@@ -7,6 +7,8 @@ This package facilitates the development of AO processes that require the abilit
 - manage ownership of the process with **multiple equal owners**
 - gate access to handlers based on process ownership
 
+The aim is to make it possible for builders to simply "plug it in", much like one would extend a smart contract in Solidity.
+
 ## Features
 
 1. An access control check based on an **emulated shared ownership** at the application level
@@ -22,34 +24,77 @@ APM.install('@autonomousfinance/ownable-multi')
 
 ## Usage
 
-1. Require the `ownable-multi` module in your Lua script
-2. On this module, execute `.load(initialOwners)` with an optional initial list of owner accounts
+Require this package in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
 
 ```lua
 -- process.lua
 
-local ownableMulti = require("@autonomousfinance/ownable-multi")
+local initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
+local ownable = require "@autonomousfinance/ownable-multi" (initialOwners)
 
-ocal initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
-ownableMulti.load(initialOwners)
+--[[ 
+  now you have 
+  1. additional handlers added to Handlers.list
+  2. the ability to use the ownable-multi API
+
+    ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+    ownable.addOwner(newOwner) -- performs the addition of a new owner
+
+    ownable.getOwnersArray() -- returns the current owners as an array
+
+    ...
+]]
 ```
 
-## Overriding & Conflict Considerations
+### No global state pollution
 
-You can override handlers added by this package. Just use
+Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project.
+
+## Overriding Functionality
+
+Similarly to extending a smart contract in Solidity, using this package allows builders to change the default functionality as needed.
+
+### 1. You can override handlers added by this package.
+
+Either replace the handler entirely
 ```lua
-Handlers.add(<package_handler_name>)
+Handlers.add(
+  'ownable-multi.Add-Owner',
+  -- your custom matcher,
+  -- your custom handle function
+)
 ```
-in your own code, after you've executed 
+
+or override handleFunctions
 ```lua
-ownable.load()
+local originalHandleAddOwner = ownable.handleAddOwner
+ownable.handleAddOwner = function(msg)
+  -- same as before
+  ownable.onlyOwner(msg)
+  -- ADDITIONAL condition
+  assert(isChristmasEve(msg.Timestamp))
+  -- same as before
+  originalHandleAddOwner
+end
 ```
+
+### 2. You can override more specific API functions of this package.
+```lua
+local originalAddOwner = ownable.addOwner
+ownable.addOwner = function(newOwner)
+  -- same as before
+  originalAddOwner(newOwner)
+  -- your ADDITIONAL logic
+  ao.send({Target = AGGREGATOR_PROCESS, Action = "Owner-Added", ["New-Owner"] = newOwner})
+end
+```
+
+## Conflicts in the Global Space
 
 ⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of the **`Handlers.list`**
 
-Both your application code and other packages you install via APM, can potentially conflict with this package.
-
-So, if you decide to use this package, consider the following
+Both your application code and other packages you install via APM, can potentially conflict with this package. Consider the following handlers as reserved by this package.
 
 ```lua
 Handlers.list = {
@@ -65,32 +110,39 @@ Handlers.list = {
     -- ... 
   },
   { 
-    name = "ownable-multi.getOwners", 
+    name = "ownable-multi.Get-Owners", 
     -- ... 
   },
   { 
-    name = "ownable-multi.addOwner", 
+    name = "ownable-multi.Add-Owner", 
     -- ... 
   },
   { 
-    name = "ownable-multi.removeOwner", 
+    name = "ownable-multi.Remove-Owner", 
     -- ... 
   },
   { 
-    name = "ownable-multi.renounceOwnership", 
+    name = "ownable-multi.Renounce-Ownership", 
     -- ... 
   }
   -- ...
 }
 ```
 
+Also, keep in mind that the code in this package will update your process' `_G.Owner` in order to achieve the desired behaviour.
+
 ## How It Works
 
-The native `Owner` changes on each `Eval` performed by one of the IDs in `OwnableMulti_Owners`.
+This explanation assumes that you've named the required package `ownable`, as in 
+```lua
+local ownable = require "@autonomousfinance/ownable-multi" (initialOwners)
+```
+
+The native `_G.Owner` changes on each `Eval` performed by one of the IDs in `ownable.Owners`.
 
 This approach allows for whitelisted wallets to interact with the process via the aos CLI as if they are regular owners
    - Results from query `Eval`'s like `aos> Owner` are displayed immediately in the CLI
    - The last `Eval` sender becomes the current process Owner
    - The process interface can be shut down and reopened by any whitelisted account regardless of who the last `Eval` sender was
 
-The **initial Owner** (that spawned the process) is always included in the whitelist, but **can be removed** by another account from `OwnableMulti_Owners`.
+The **initial Owner** (that spawned the process) is always included in the whitelist, but **can be removed** by another account from `ownable.Owners`.
