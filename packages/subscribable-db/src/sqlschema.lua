@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS balances (
 sqlschema.create_subscriptions_table = [[
 CREATE TABLE IF NOT EXISTS subscriptions (
     process_id TEXT PRIMARY KEY,
-    owner_id TEXT NOT NULL
+    owner_id TEXT NOT NULL,
+    topics TEXT -- JSON data
 );
 ]]
 
@@ -23,7 +24,7 @@ function sqlschema.createTableIfNotExists(db)
   print("Err: " .. db:errmsg())
 end
 
-function sqlschema.registerProcess(processId, ownerId)
+function sqlschema.registerSubscriber(processId, ownerId, topics)
   local stmt = db:prepare [[
     INSERT INTO subscriptions (process_id, owner_id)
     VALUES (:process_id, :owner_id)

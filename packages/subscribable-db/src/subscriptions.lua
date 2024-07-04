@@ -1,8 +1,37 @@
+local subs = {}
+
 local sqlschema = require('sqlschema')
 
-local dispatch = {}
 
-function dispatch.dispatch(event, payload)
+local internal = {}
+
+function subs.registerSubscriber(msg)
+  local processId = msg.Tags['Subscriber-Process-Id']
+  local ownerId = msg.Tags['Owner-Id']
+  local topic = msg.Tags['Topic']
+
+  print('Registering process: ' .. processId .. ' with owner: ' .. ownerId .. ' for topic ' .. topic)
+
+  if internal.isSubscribedToTopic(processId, topic) then
+    error('process ' ..
+      processId ..
+      ' already registered as a subscriber to topic ' ..
+      topic .. ' having ownerID = ' .. Subscribable_Subscriptions[processId].ownerID)
+  end
+
+  sqlschema.registerSubscriber(processId, ownerId, topic)
+
+  ao.send({
+    Target = ao.id,
+    Assignments = { ownerId, processId },
+    Action = 'Subscription-Confirmation',
+    Process = processId,
+    Topic = topic,
+    OK = 'true'
+  })
+end
+
+function subs.dispatch(event, payload)
   local subscribersStmt = db:prepare([[
     SELECT s.process_id, s.quote_token_process_id
     FROM top_n_subscriptions s
@@ -51,4 +80,4 @@ function dispatch.dispatch(event, payload)
   print('Dispatched market data to all top N consumers')
 end
 
-return dispatch
+return subs
