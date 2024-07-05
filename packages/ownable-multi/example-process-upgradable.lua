@@ -9,14 +9,16 @@ if not Ownable then
       The spawner's ID is implicitly one of the multiple owners
       ]]
   }
-  Ownable = require "@autonomousfinance/ownable-multi" ({
+  -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
+  Ownable = require "build.main" ({
     initial = true,
     otherOwners = otherOwners
   })
 else
   -- UPGRADE of example-process.lua
 
-  Ownable = require "@autonomousfinance/ownable-multi" ({
+  -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
+  Ownable = require "build.main" ({
     initial = false,
     existing = Ownable
   })

@@ -1,4 +1,5 @@
-Ownable = require("@autonomousfinance/ownable")
+Ownable = require "build.main"
+-- Ownable = require "@autonomousfinance/ownable" -- when actually using the package with APM
 
 Counter = Counter or 0
 
