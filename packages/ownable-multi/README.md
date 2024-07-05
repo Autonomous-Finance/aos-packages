@@ -30,7 +30,10 @@ Require this package in your Lua script. The resulting table contains the packag
 -- process.lua
 
 local initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
-local ownable = require "@autonomousfinance/ownable-multi" (initialOwners)
+Ownable = require "@autonomousfinance/ownable-multi" ({
+  initial = true,
+  initialOwners = initialOwners
+})
 
 --[[ 
   now you have 
@@ -49,7 +52,23 @@ local ownable = require "@autonomousfinance/ownable-multi" (initialOwners)
 
 ### No global state pollution
 
-Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project.
+Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed to manage multiple owners is **encapsulated in the package module**.
+However, for upgradability we recommend assigning the required package to a global variable of your process (see below).
+
+## Upgrading your process
+
+You may want your lua process to be upgradable, which includes the ability to upgrade this package as it is used by your process. 
+
+In order to make this possible, this package gives you the option to `require` it as an upgrade.
+```lua
+Ownable = require "@autonomousfinance/ownable-multi"({
+  initial = false,
+  existing = Ownable
+})
+```
+When doing that, you **pass in the previously used package module**, such that all the internal package state your process has been using so far, can be "adopted" by the new version of package.
+
+An example of this can be found in `example-process-upgradable.lua`.
 
 ## Overriding Functionality
 
@@ -68,10 +87,10 @@ Handlers.add(
 
 or override handleFunctions
 ```lua
-local originalHandleAddOwner = ownable.handleAddOwner
-ownable.handleAddOwner = function(msg)
+local originalHandleAddOwner = Ownable.handleAddOwner
+Ownable.handleAddOwner = function(msg)
   -- same as before
-  ownable.onlyOwner(msg)
+  Ownable.onlyOwner(msg)
   -- ADDITIONAL condition
   assert(isChristmasEve(msg.Timestamp))
   -- same as before
@@ -81,8 +100,8 @@ end
 
 ### 2. You can override more specific API functions of this package.
 ```lua
-local originalAddOwner = ownable.addOwner
-ownable.addOwner = function(newOwner)
+local originalAddOwner = Ownable.addOwner
+Ownable.addOwner = function(newOwner)
   -- same as before
   originalAddOwner(newOwner)
   -- your ADDITIONAL logic
@@ -135,7 +154,7 @@ Also, keep in mind that the code in this package will update your process' `_G.O
 
 This explanation assumes that you've named the required package `ownable`, as in 
 ```lua
-local ownable = require "@autonomousfinance/ownable-multi" (initialOwners)
+Ownable = require "@autonomousfinance/ownable-multi" ({...})
 ```
 
 The native `_G.Owner` changes on each `Eval` performed by one of the IDs in `ownable.Owners`.

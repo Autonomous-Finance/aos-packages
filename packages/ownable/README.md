@@ -29,7 +29,7 @@ Require this package in your Lua script. The resulting table contains the packag
 ```lua
 -- process.lua
 
-local ownable = require("@autonomousfinance/ownable")
+Ownable = require("@autonomousfinance/ownable")
 
   --[[ 
     now you have 
@@ -47,7 +47,7 @@ local ownable = require("@autonomousfinance/ownable")
 
 ### No global state pollution
 
-Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project.
+Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. For best upgradability, we recommend assigning the required package to a global variable of your process.
 
 ## Overriding Functionality
 
@@ -66,10 +66,10 @@ Handlers.add(
 
 or override handleFunctions
 ```lua
-local originalHandleTransferOwnership = ownable.handleTransferOwnership
-ownable.handleTransferOwnership = function(msg)
+local originalHandleTransferOwnership = Ownable.handleTransferOwnership
+Ownable.handleTransferOwnership = function(msg)
   -- same as before
-  ownable.onlyOwner(msg)
+  Ownable.onlyOwner(msg)
   -- ADDITIONAL condition
   assert(isChristmasEve(msg.Timestamp))
   -- same as before
@@ -79,8 +79,8 @@ end
 
 ### 2. You can override more specific API functions of this package.
 ```lua
-local originalTransferOwnership = ownable.transferOwnership
-ownable.transferOwnership = function(newOwner)
+local originalTransferOwnership = Ownable.transferOwnership
+Ownable.transferOwnership = function(newOwner)
   -- same as before
   originalTransferOwnership(newOwner)
   -- your ADDITIONAL logic

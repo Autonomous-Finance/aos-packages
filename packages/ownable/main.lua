@@ -2,7 +2,7 @@ local mod = {
   version = '1.2.1'
 }
 
-local OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+mod.RENOUNCE_MANAGER = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
 Handlers.add(
   "ownable.Get-Owner",
@@ -26,7 +26,7 @@ Handlers.add(
   Handlers.utils.hasMatchingTag("Action", "Renounce-Ownership"),
   function(msg)
     mod.onlyOwner(msg)
-    Owner = OWNERSHIP_RENOUNCER_PROCESS
+    Owner = mod.RENOUNCE_MANAGER
     ao.send({ Target = Owner, Action = 'MakeRenounce' })
   end
 )

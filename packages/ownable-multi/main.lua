@@ -1,22 +1,25 @@
-local function newmodule(initialOwners)
-  local mod = {
-    version = '1.2.1'
-  }
+local function newmodule(cfg)
+  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?") -- as a bug-safety measure, force the package user to be explicit
+
+  local pkg = cfg.existing or {}
+
+  pkg.version = '1.2.1'
 
   local json = require "json"
 
-  local OWNERSHIP_RENOUNCER_PROCESS = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+  pkg.RENOUNCE_MANAGER = pkg.RENOUNCE_MANAGER or '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
 
-  -- accounts that can act as owners (key-value instead of array for simpler lookups)
-  mod.Owners = mod.Owners or {
-    [Owner] = true
-  }
-
-  if initialOwners then
-    for _, owner in ipairs(initialOwners) do
-      mod.Owners[owner] = true
+  if cfg.initial then
+    -- accounts that can act as owners (key-value instead of array for simpler lookups)
+    pkg.Owners = {
+      [Owner] = true,
+    }
+    for _, owner in ipairs(cfg.otherOwners) do
+      pkg.Owners[owner] = true
     end
   end
+
+  -- HANDLERS
 
   --[[
   The process Owner changes on each Eval performed by one of the Owners.
@@ -32,7 +35,7 @@ local function newmodule(initialOwners)
     'ownable-multi.customEvalMatchPositive',
     function(msg)
       local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
-      local isWhitelisted = mod.Owners[msg.From]
+      local isWhitelisted = pkg.Owners[msg.From]
       return isEval and isWhitelisted and "continue" or false
     end,
     function(msg)
@@ -45,7 +48,7 @@ local function newmodule(initialOwners)
     'ownable-multi.customEvalMatchNegative',
     function(msg)
       local isEval = Handlers.utils.hasMatchingTag("Action", "Eval")(msg)
-      local isWhitelisted = mod.Owners[msg.From]
+      local isWhitelisted = pkg.Owners[msg.From]
       return isEval and not isWhitelisted
     end,
     function(msg)
@@ -57,7 +60,7 @@ local function newmodule(initialOwners)
     "ownable-multi.Get-Owners",
     Handlers.utils.hasMatchingTag("Action", "Get-Owners"),
     function(msg)
-      ao.send({ Target = msg.From, Data = json.encode(mod.getOwnersArray()) })
+      ao.send({ Target = msg.From, Data = json.encode(pkg.getOwnersArray()) })
     end
   )
 
@@ -65,8 +68,8 @@ local function newmodule(initialOwners)
     "ownable-multi.Add-Owner",
     Handlers.utils.hasMatchingTag("Action", "Add-Owner"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.handleAddOwner(msg)
+      pkg.onlyOwner(msg)
+      pkg.handleAddOwner(msg)
     end
   )
 
@@ -74,8 +77,8 @@ local function newmodule(initialOwners)
     "ownable-multi.Remove-Owner",
     Handlers.utils.hasMatchingTag("Action", "Remove-Owner"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.handleRemoveOwner(msg)
+      pkg.onlyOwner(msg)
+      pkg.handleRemoveOwner(msg)
     end
   )
 
@@ -87,67 +90,67 @@ local function newmodule(initialOwners)
     "ownable-multi.Renounce-Ownership",
     Handlers.utils.hasMatchingTag("Action", "Renounce-Ownership"),
     function(msg)
-      mod.onlyOwner(msg)
-      mod.Owners = nil
-      Owner = OWNERSHIP_RENOUNCER_PROCESS
+      pkg.onlyOwner(msg)
+      pkg.Owners = nil
+      Owner = pkg.RENOUNCE_MANAGER
       msg.send({ Target = Owner, Action = 'MakeRenounce' })
     end
   )
 
   -- API
 
-  mod.onlyOwner = function(msg)
-    if mod.Owners == nil then
+  pkg.onlyOwner = function(msg)
+    if pkg.Owners == nil then
       assert(msg.From == Owner, "Only the owner is allowed")
     else
-      assert(mod.Owners[msg.From], "Only an owner is allowed")
+      assert(pkg.Owners[msg.From], "Only an owner is allowed")
     end
   end
 
-  mod.addOwner = function(newOwner)
-    mod.Owners[newOwner] = true
+  pkg.addOwner = function(newOwner)
+    pkg.Owners[newOwner] = true
     ao.send({
       Target = ao.id,
       Event = "Add-Owner",
       ["New-Owner"] = Owner,
-      ["Current-Owners"] = json.encode(mod
+      ["Current-Owners"] = json.encode(pkg
         .getOwnersArray())
     })
   end
 
-  mod.handleAddOwner = function(msg)
+  pkg.handleAddOwner = function(msg)
     local newOwner = msg.Tags["New-Owner"]
     assert(newOwner ~= nil and type(newOwner) == 'string', '"New-Owner" is required!')
-    mod.addOwner(newOwner)
+    pkg.addOwner(newOwner)
   end
 
-  mod.removeOwner = function(oldOwner)
-    mod.Owners[oldOwner] = nil
+  pkg.removeOwner = function(oldOwner)
+    pkg.Owners[oldOwner] = nil
     ao.send({
       Target = ao.id,
       Event = "Add-Owner",
       ["Old-Owner"] = Owner,
-      ["Current-Owners"] = json.encode(mod
+      ["Current-Owners"] = json.encode(pkg
         .getOwnersArray())
     })
   end
 
-  mod.handleRemoveOwner = function(msg)
+  pkg.handleRemoveOwner = function(msg)
     local oldOwner = msg.Tags["Old-Owner"]
     assert(oldOwner ~= nil and type(oldOwner) == 'string', '"Old-Owner" is required!')
-    mod.removeOwner(oldOwner)
+    pkg.removeOwner(oldOwner)
   end
 
-  mod.getOwnersArray = function()
+  pkg.getOwnersArray = function()
     local ownersArray = {}
-    for owner, _ in pairs(mod.Owners) do
+    for owner, _ in pairs(pkg.Owners) do
       table.insert(ownersArray, owner)
     end
     return ownersArray
   end
 
 
-  return mod
+  return pkg
 end
 
 return newmodule
