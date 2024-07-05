@@ -5,9 +5,18 @@ local utils = require "utils"
 local function newmodule(pkg)
   --[[
     {
+      topic: string = eventCheckFn: () => boolean
+    }
+  ]]
+  pkg.TopicAndChecks = pkg.TopicAndChecks or {}
+
+
+  --[[
+    {
       processId: ID = {
         ownerID: ID,
-        topics: string[]
+        topics: string[],
+        whitelisted: boolean -- if true, receives data without the need to pay
       }
     }
   ]]
@@ -23,16 +32,9 @@ local function newmodule(pkg)
   ]]
   pkg.Balances = pkg.Balances or {}
 
-  --[[
-    {
-      topic: string = eventCheckFn: () => boolean
-    }
-  ]]
-  pkg.TopicsCfg = pkg.TopicsCfg or {}
-
   -- REGISTRATION
 
-  function pkg.registerSubscriber(processId, ownerId)
+  function pkg.registerSubscriber(processId, ownerId, whitelisted)
     if pkg.Registrations[processId] then
       error('process ' ..
         processId ..
@@ -42,6 +44,7 @@ local function newmodule(pkg)
 
     pkg.Subscriptions[processId] = pkg.Subscriptions[processId] or {
       ownerId = ownerId,
+      whitelisted = whitelisted,
       topics = {}
     }
 
@@ -49,6 +52,7 @@ local function newmodule(pkg)
       Target = ao.id,
       Assignments = { ownerId, processId },
       Action = 'Subscriber-Registration-Confirmation',
+      Whitelisted = tostring(whitelisted),
       Process = processId,
       OK = 'true'
     })
@@ -57,7 +61,15 @@ local function newmodule(pkg)
   function pkg.handleRegisterSubscriber(msg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
-    pkg.registerSubscriber(processId, ownerId)
+    pkg.registerSubscriber(processId, ownerId, false)
+    pkg.subscribeToTopics(msg)
+  end
+
+  --- @dev only the main process owner should be able allowed here
+  function pkg.handleRegisterWhitelistedSubscriber(msg)
+    local processId = msg.Tags['Subscriber-Process-Id']
+    local ownerId = msg.Tags['Owner-Id']
+    pkg.registerSubscriber(processId, ownerId, true)
     pkg.subscribeToTopics(msg)
   end
 
@@ -73,20 +85,24 @@ local function newmodule(pkg)
     pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
   end
 
-  -- SUBSCRIPTIONS
+  -- TOPICS
 
-  function pkg.configTopics(cfg)
-    pkg.TopicsCfg = cfg
+  function pkg.configTopicsAndChecks(cfg)
+    pkg.TopicAndChecks = cfg
   end
 
   function pkg.getAvailableTopicsArray()
-    return utils.map(
-      function(topic, _)
-        return topic
-      end,
-      pkg.TopicsCfg
-    )
+    return utils.keysOf(pkg.TopicAndChecks)
   end
+
+  function pkg.handleGetAvailableTopics(msg)
+    ao.send({
+      Target = msg.From,
+      Data = json.encode(utils.keysOf(pkg.TopicAndChecks))
+    })
+  end
+
+  -- SUBSCRIPTIONS
 
   function pkg.subscribeToTopics(processId, ownerId, topics)
     pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
@@ -152,18 +168,21 @@ local function newmodule(pkg)
   function pkg.notifySubscribers(topic, payload)
     local targets = {}
     for k, v in pairs(pkg.Subscriptions) do
-      if pkg.isSubscribedTo(k, topic) and pkg.hasBalance(v.ownerID) then
+      local mayReceiveNotification = pkg.hasBalance(v.ownerId) or v.whitelisted
+      if pkg.isSubscribedTo(k, topic) and mayReceiveNotification then
         table.insert(targets, k)
       end
     end
 
-    ao.send({
-      ['Target'] = ao.id,
-      ['Assignments'] = targets,
-      ['Action'] = 'Notify-On-Topic',
-      ['Topic'] = topic,
-      ['Data'] = json.encode(payload)
-    })
+    if #targets > 0 then
+      ao.send({
+        ['Target'] = ao.id,
+        ['Assignments'] = targets,
+        ['Action'] = 'Notify-On-Topic',
+        ['Topic'] = topic,
+        ['Data'] = json.encode(payload)
+      })
+    end
   end
 
   -- notify without check
@@ -185,9 +204,9 @@ local function newmodule(pkg)
 
   function pkg.checkNotifyTopics(topics, timestamp)
     for _, topic in ipairs(topics) do
-      local notify, payload = pkg.TopicsCfg[topic].checkFn()
-      payload.timestamp = timestamp
+      local notify, payload = pkg.TopicAndChecks[topic]()
       if notify then
+        payload.timestamp = timestamp
         pkg.notifySubscribers(topic, payload)
       end
     end
@@ -227,8 +246,6 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
     end
   end
-
-  return pkg
 end
 
 return newmodule

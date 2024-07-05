@@ -1,18 +1,26 @@
 local utils = { _version = "0.0.2" }
 
-local function isArray(table)
-  if type(table) == "table" then
+local function isArray(t)
+  if type(t) == "table" then
     local maxIndex = 0
-    for k, v in pairs(table) do
+    for k, _ in pairs(t) do
       if type(k) ~= "number" or k < 1 or math.floor(k) ~= k then
         return false -- If there's a non-integer key, it's not an array
       end
       maxIndex = math.max(maxIndex, k)
     end
     -- If the highest numeric index is equal to the number of elements, it's an array
-    return maxIndex == #table
+    return maxIndex == #t
   end
   return false
+end
+
+utils.keysOf = function(t)
+  local keys = {}
+  for k, _ in pairs(t) do
+    table.insert(keys, k)
+  end
+  return keys
 end
 
 -- @param {function} fn

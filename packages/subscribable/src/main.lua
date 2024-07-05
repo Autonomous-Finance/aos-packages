@@ -1,12 +1,16 @@
--- version 1.2.0
-local pkg = {}
+local function newmodule(cfg)
+  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?") -- as a bug-safety measure, force the package user to be explicit
 
-local AOCRED = 'Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc'
+  local pkg = cfg.existing or {}
 
--- mod acts like the package "global", we assign to it the state and functions of the package
-pkg = require "subscriptions" (pkg)
+  pkg.version = '1.0.0'
 
-pkg.load = function()
+  -- pkg acts like the package "global", bundling the state and API functions of the package
+
+  require "subscriptions" (pkg)
+
+  pkg.PAYMENT_TOKEN = 'Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc'
+
   Handlers.add(
     "subscribable.Register-Subscriber",
     Handlers.utils.hasMatchingTag("Action", "Register-Subscriber"),
@@ -23,15 +27,15 @@ pkg.load = function()
     "subscribable.Receive-Payment",
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
-          and msg.From == AOCRED
+          and msg.From == pkg.PAYMENT_TOKEN
     end,
-    pkg.handleRceivePayment
+    pkg.handleReceivePayment
   )
 
   Handlers.add(
     "subscribable.Get-Available-Topics",
     Handlers.utils.hasMatchingTag("Action", "Get-Available-Topics"),
-    pkg.getAvailableTopics
+    pkg.handleGetAvailableTopics
   )
 
   Handlers.add(
@@ -45,6 +49,7 @@ pkg.load = function()
     Handlers.utils.hasMatchingTag('Action', 'Unsubscribe-From-Topics'),
     pkg.handleUnsubscribeFromTopics
   )
-end
 
-return pkg
+  return pkg
+end
+return newmodule

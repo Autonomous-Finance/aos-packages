@@ -17,9 +17,11 @@ If you require an sql-based solution, please refer to the [subscribable-db](http
 
 ### API
 
-4. configure topics w/ corresponding event checks
-5. notify subscribers to given topics
-6. notify subscribers to given topics with event check
+5. configure topics w/ corresponding event checks
+6. functions to implement the above Handlers or your own variations
+7. ability to register a process as whitelisted
+8. notify subscribers to given topics
+9. notify subscribers to given topics with event check
 
 ## Installation
 
@@ -37,29 +39,30 @@ APM.install('@autonomousfinance/subscribable')
 ```lua
 -- process.lua
 
-local sub = require("@autonomousfinance/subscribable")
+Subscribable = require("@autonomousfinance/subscribable")
 
---[[
-  These capabilties include
+--[[ 
+  now you have 
+  1. additional handlers added to Handlers.list
+  2. the ability to use the ownable-multi API
 
-  Handlers:
-    - "registerSubscriber"
-    - "receivePayment"
-
-  API
     - configureTopics()
     - checkNotifyTopic()
     - checkNotifyTopics()
     - getRegisteredSubscriber()
-    - ...
+
+    ...
 ]]
 
-
-sub.configTopics({
-  {'even-counter', function() Counter % 2 == 0 end },
-})
-
 Counter = Counter = 0
+
+Subscribable.configTopicsAndChecks({
+  'even-counter',       -- topic name
+  function()            -- a check function to determine if the event occurs & generate a notification payload
+    if Counter % 2 == 0 then return true, {counter = Counter} end
+    return false
+  end
+})
 
 -- Updates to Counter
 Handlers.add(
@@ -69,38 +72,96 @@ Handlers.add(
     -- state change
     Counter = Counter + 1
     -- notifications
-    sub.checkNotifyTopic('even-counter') -- will send out notifications if configured event check returns true
+    sub.checkNotifyTopic('even-counter') -- sends out notifications based on check and payload from the event check function you configured
   end
 )
 ```
 
-## Overriding & Conflict Considerations
+### No global state pollution
 
-You can override handlers added by this package. Just use
+Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed to manage multiple owners is **encapsulated in the package module**.
+However, for upgradability we recommend assigning the required package to a global variable of your process (see below).
+
+## Upgrading your process
+
+You may want your lua process to be upgradable, which includes the ability to upgrade this package as it is used by your process. 
+
+In order to make this possible, this package gives you the option to `require` it as an upgrade.
 ```lua
-Handlers.add(<package_handler_name>)
+Subscribable = require "@autonomousfinance/subscribable"({
+  initial = false,
+  existing = Subscribable
+})
 ```
-in your own code, after you've executed 
+When doing that, you **pass in the previously used package module**, such that all the internal package state your process has been using so far, can be "adopted" by the new version of package.
+
+An example of this can be found in `example/example.lua`.
+
+## Overriding Functionality
+
+Similarly to extending a smart contract in Solidity, using this package allows builders to change the default functionality as needed.
+
+### 1. You can override handlers added by this package.
+
+Either replace the handler entirely
 ```lua
-sub.load()
+Handlers.add(
+  'subscribable.Register-Subscriber',
+  -- your custom matcher,
+  -- your custom handle function
+)
 ```
 
-⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of **global state** and the **`Handlers.list`**
+or override handleFunctions
+```lua
+-- handle for "ownable-multi.Register-Subscriber"
+function(msg)
+  -- ADDITIONAL condition
+  assert(isChristmasEve(msg.Timestamp))
+  -- same as before
+  Subscribable.handleRegisterSubscriber
+end
+```
 
-Both your application code and other packages you install via APM, can potentially conflict with this package.
+### 2. You can override more specific API functions of this package.
+```lua
+local originalRegisterSubscriber = Subscribable.registerSubscriber
+Subscribable.registerSubscriber = function(processID)
+  -- same as before
+  originalRegisterSubscriber(processID)
+  -- your ADDITIONAL logic
+  ao.send({Target = AGGREGATOR_PROCESS, Action = "Subscriber-Registered", ["Process-ID"] = processID})
+end
+```
 
-So, if you decide to use this package, consider the following
+### 3. You can create new Handlers with available API functions of this package.
+```lua
+Handlers.add(
+  "Register-Whitelisted-Subscriber",
+  Handlers.utils.hasMatchingTag("Action", "Register-Whitelisted-Subscriber"),
+  function(msg)
+    Ownable.onlyOwner(msg) -- restrict access using the "@autonomousfinance/ownable" package
+    Subscribable.handleRegisterWhitelistedSubscriber(msg) -- already exists in this package
+  end
+)
+```
+
+## Conflict Considerations
+
+⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of the **`Handlers.list`**
+
+Both your application code and other packages you install via APM, can potentially conflict with this package. Consider the following handlers as reserved by this package.
 
 ```lua
-_G.Subscribable_Balances
-_G.Subscribable_Subscriptions
 
 Handlers.list = {
   -- ...
-
-  -- the custom eval handlers MUST REMAIN AT THE TOP of the Handlers.list
   { 
     name = "subscribable.Register-Subscriber",
+    -- ... 
+  },
+  { 
+    name = "subscribable.Get-Subscriber",
     -- ... 
   },
   { 
@@ -108,11 +169,15 @@ Handlers.list = {
     -- ... 
   },
   { 
-    name = "subscribable.Get-Subscriber",
-    -- ... 
-  }
-  { 
     name = "subscribable.Get-Available-Topics",
+    -- ... 
+  },
+  { 
+    name = "subscribable.Subscribe-To-Topics",
+    -- ... 
+  },
+  { 
+    name = "subscribable.Unsubscribe-From-Topics",
     -- ... 
   }
   -- ...

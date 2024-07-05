@@ -1,10 +1,9 @@
-local internal = {}
-
-
 --[[
-  EXAMPLE BUSINESS LOGIC
+  EXAMPLE PROCESS
 
   This Process tracks a Counter and a Greeting that can be publicly updated.
+
+  It is also required to be subscribable.
 
   EVENTS that are interesting to subscribers
     - Counter is even
@@ -21,62 +20,73 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
-local sub = require 'build.main' -- LOAD SUBSCRIBABLE CAPABILITIES
+if not Subscribable then
+  -- INITIAL DEPLOYMENT of example-process.lua
 
--- Define CUSTOM TOPICS and corresponding CHECK FUNCTIONS
--- Check Functions use global state to determine if the event is occurring
-sub.configTopics({
-  ['even-counter'] = internal.checkNotifyCounter,
-  ['gm-greeting'] = internal.checkNotifyGreeting
-})
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = true,
+  })
+else
+  -- UPGRADE of example-process.lua
+
+  -- We reuse all existing package state
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = false,
+    existing = Subscribable
+  })
+end
 
 Handlers.add(
-  'subscribable.Increment',
+  'Increment',
   Handlers.utils.hasMatchingTag('Action', 'Increment'),
   function(msg)
     Counter = Counter + 1
     -- Check and send notifications if event occurs
-    sub.checkNotifyTopic('even-counter', msg.Timestamp)
+    Subscribable.checkNotifyTopic('even-counter', msg.Timestamp)
   end
 )
 
 Handlers.add(
-  'subscribable.Set-Greeting',
+  'Set-Greeting',
   Handlers.utils.hasMatchingTag('Action', 'Set-Greeting'),
   function(msg)
     Greeting = msg.Tags.Greeting
     -- Check and send notifications if event occurs
-    sub.checkNotifyTopic('gm-greeting', msg.Timestamp)
+    Subscribable.checkNotifyTopic('gm-greeting', msg.Timestamp)
   end
 )
 
 Handlers.add(
-  'subscribable.Set-Greeting-As-Gm-Variant',
+  'Set-Greeting-As-Gm-Variant',
   Handlers.utils.hasMatchingTag('Action', 'Set-Greeting-As-Gm-Variant'),
   function(msg)
     Greeting = 'GM-' .. tostring(math.random(1000, 9999))
     -- We know for sure that notifications should be sent --> this helps to avoid performing redundant computation
-    sub.notifyTopic('gm-greeting', msg.Timestamp)
+    Subscribable.notifyTopic('gm-greeting', msg.Timestamp)
   end
 )
 
 Handlers.add(
-  'subscribable.Update-All',
+  'Update-All',
   Handlers.utils.hasMatchingTag('Action', 'Update-All'),
   function(msg)
     Greeting = msg.Tags.Greeting
     Counter = msg.Tags.Counter
     -- Check for multiple topics and send notifications if event occurs
-    sub.checkNotifyTopics(
+    Subscribable.checkNotifyTopics(
       { 'even-counter', 'gm-greeting' },
       msg.Timestamp
     )
   end
 )
 
--- INTERNAL
+-- CONFIGURE TOPICS AND CHECKS
 
-internal.checkNotifyCounter = function()
+-- We define CUSTOM TOPICS and corresponding CHECK FUNCTIONS
+-- Check Functions use global state of this process (example.lua)
+-- in order to determine if the event is occurring
+
+local checkNotifyCounter = function()
   if Counter % 2 == 0 then
     return true, {
       counter = Counter,
@@ -85,7 +95,7 @@ internal.checkNotifyCounter = function()
   return false
 end
 
-internal.checkNotifyGreeting = function()
+local checkNotifyGreeting = function()
   if string.find(string.lower(Greeting), "gm") then
     return true, {
       greeting = Greeting,
@@ -93,3 +103,8 @@ internal.checkNotifyGreeting = function()
   end
   return false
 end
+
+Subscribable.configTopicsAndChecks({
+  ['even-counter'] = checkNotifyCounter,
+  ['gm-greeting'] = checkNotifyGreeting
+})
