@@ -64,16 +64,16 @@ Handlers.add(
 )
 ```
 
-or override handleFunctions
+or override handle functions
 ```lua
-local originalHandleTransferOwnership = Ownable.handleTransferOwnership
-Ownable.handleTransferOwnership = function(msg)
+-- handle for "ownable.Transfer-Ownership"
+function(msg)
   -- same as before
   Ownable.onlyOwner(msg)
   -- ADDITIONAL condition
   assert(isChristmasEve(msg.Timestamp))
   -- same as before
-  originalHandleTransferOwnership
+  Ownable.handleTransferOwnership(msg)
 end
 ```
 
