@@ -3,8 +3,8 @@
 ## Subscription provider capabilities for an AO process
 
 This package facilitates the development of AO processes that require the ability to register subscribers for specific topics and dispatch messages to them.
-This solution is based on simple lua tables. 
-If you require an sql-based solution, please refer to the [subscribable-db](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/subscribable-db/) package.
+
+This solution is based on **simple Lua tables**. If you require an sql-based solution, please refer to the [subscribable-db](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/subscribable-db/) package.
 
 ## Features
 
@@ -17,11 +17,11 @@ If you require an sql-based solution, please refer to the [subscribable-db](http
 
 ### API
 
-5. configure topics w/ corresponding event checks
-6. functions to implement the above Handlers or your own variations
-7. ability to register a process as whitelisted
-8. notify subscribers to given topics
-9. notify subscribers to given topics with event check
+1. configure topics w/ corresponding event checks
+2. functions to implement the above Handlers or your own variations
+3. ability to register a process as whitelisted
+4. notify subscribers to given topics
+5. notify subscribers to given topics with event check
 
 ## Installation
 
@@ -32,8 +32,8 @@ APM.install('@autonomousfinance/subscribable')
 ## Usage
 
 1. Require the `subscribable` package in your Lua script
-3. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding event checks
-4. Whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
+2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding event checks
+3. Whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
 
 ```lua
 -- process.lua
@@ -78,7 +78,7 @@ Handlers.add(
 
 ### No global state pollution
 
-Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed to manage multiple owners is **encapsulated in the package module**.
+Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed for subscribable capabilities is **encapsulated in the package module**.
 However, for upgradability we recommend assigning the required package to a global variable of your process (see below).
 
 ## Upgrading your process
@@ -193,6 +193,7 @@ We've built this non-sql version for the purpose of developer convenience, for c
 
 ## TODO
 
+- remove subscriber
 - data validation -> multiple topics passed in on registration / on subscription / on unsubscription
 
 - Subscriptions and Balances - reconsider data structures (subscriptions and balances) for maximum efficiency
