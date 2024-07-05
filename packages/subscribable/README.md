@@ -31,10 +31,9 @@ APM.install('@autonomousfinance/subscribable')
 
 ## Usage
 
-1. Require the `subscribable` module in your Lua script
-2. On this module, execute `.load()`
-3. On this module, initially and whenever needed, execute `.configTopics()` to configure the supported topics and corresponding event checks
-4. On this module, whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
+1. Require the `subscribable` package in your Lua script
+3. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding event checks
+4. Whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
 
 ```lua
 -- process.lua
@@ -46,7 +45,7 @@ Subscribable = require("@autonomousfinance/subscribable")
   1. additional handlers added to Handlers.list
   2. the ability to use the ownable-multi API
 
-    - configureTopics()
+    - configTopicsAndChecks()
     - checkNotifyTopic()
     - checkNotifyTopics()
     - getRegisteredSubscriber()
