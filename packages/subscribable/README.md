@@ -43,7 +43,7 @@ Subscribable = require("@autonomousfinance/subscribable")
 --[[ 
   now you have 
   1. additional handlers added to Handlers.list
-  2. the ability to use the ownable-multi API
+  2. the ability to use the subscribable API
 
     - configTopicsAndChecks()
     - checkNotifyTopic()
