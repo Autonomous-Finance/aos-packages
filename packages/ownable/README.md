@@ -36,9 +36,9 @@ Ownable = require("@autonomousfinance/ownable")
     1. additional handlers added to Handlers.list
     2. the ability to use the ownable API
       
-      ownable.transferOwnership(newOwner) -- performs the transfer of ownership
+      Ownable.transferOwnership(newOwner) -- performs the transfer of ownership
       
-      ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+      Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
 
       ...
   ]]

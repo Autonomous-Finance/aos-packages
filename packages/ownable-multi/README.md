@@ -40,11 +40,11 @@ Ownable = require "@autonomousfinance/ownable-multi" ({
   1. additional handlers added to Handlers.list
   2. the ability to use the ownable-multi API
 
-    ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+    Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
 
-    ownable.addOwner(newOwner) -- performs the addition of a new owner
+    Ownable.addOwner(newOwner) -- performs the addition of a new owner
 
-    ownable.getOwnersArray() -- returns the current owners as an array
+    Ownable.getOwnersArray() -- returns the current owners as an array
 
     ...
 ]]
