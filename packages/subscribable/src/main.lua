@@ -18,7 +18,11 @@ local function newmodule(cfg)
     require "subscriptions" (pkg)
   end
 
-  pkg.PAYMENT_TOKEN = 'Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc'
+  pkg.PAYMENT_TOKEN = '8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ' -- BRKTST
+
+  if cfg.initial then
+    pkg.configTopics(cfg.topics)
+  end
 
   Handlers.add(
     "subscribable.Register-Subscriber",

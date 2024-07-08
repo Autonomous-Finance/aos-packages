@@ -7,7 +7,7 @@ local function newmodule(pkg)
       topic: string = eventCheckFn: () => boolean
     }
   ]]
-  pkg.TopicAndChecks = pkg.TopicAndChecks or {}
+  pkg.TopicsAndChecks = pkg.TopicsAndChecks or {}
 
 
   local sqlschema = require('sqlschema')
@@ -65,17 +65,17 @@ local function newmodule(pkg)
   -- TOPICS
 
   function pkg.configTopicsAndChecks(cfg)
-    pkg.TopicAndChecks = cfg
+    pkg.TopicsAndChecks = cfg
   end
 
   function pkg.getAvailableTopicsArray()
-    return utils.keysOf(pkg.TopicAndChecks)
+    return utils.keysOf(pkg.TopicsAndChecks)
   end
 
   function pkg.handleGetAvailableTopics(msg)
     ao.send({
       Target = msg.From,
-      Data = json.encode(utils.keysOf(pkg.TopicAndChecks))
+      Data = json.encode(utils.keysOf(pkg.TopicsAndChecks))
     })
   end
 
@@ -162,7 +162,7 @@ local function newmodule(pkg)
 
   function pkg.checkNotifyTopics(topics, timestamp)
     for _, topic in ipairs(topics) do
-      local notify, payload = pkg.TopicAndChecks[topic]()
+      local notify, payload = pkg.TopicsAndChecks[topic]()
       if notify then
         payload.timestamp = timestamp
         pkg.notifySubscribers(topic, payload)

@@ -22,9 +22,10 @@ The package comes in two flavours:
 
 1. configure events w/ corresponding checks
 2. functions to implement the above Handlers or your own variations
-3. ability to register a process as whitelisted
+3. ability to register a process as whitelisted (not gated)
 4. notify subscribers to given events
 5. notify subscribers to given events with check
+6. configure the payment token (not gated)
 
 ## Installation
 
@@ -176,6 +177,11 @@ Handlers.add(
 )
 ```
 
+### Consider Access Control
+
+Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` should only be used in handlers that **restrict access**. In order to give your process "Ownable" capabilities, consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
+
+
 ## Conflict Considerations
 
 ⚠️ ❗️ If overriding functionality is not something you need, be mindful of potential conflicts in terms of the **`Handlers.list`**
@@ -233,8 +239,6 @@ We've built this non-sql flavour for the purpose of developer convenience, for c
 
 
 - Topics: how are they built/defined? parameters
-
-- custom payment token
 
 - topic parameter for lambda
 
