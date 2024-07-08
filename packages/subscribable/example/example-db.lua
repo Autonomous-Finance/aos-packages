@@ -23,14 +23,15 @@ Greeting = Greeting or "Hello"
 if not Subscribable then
   -- INITIAL DEPLOYMENT of example-process.lua
 
-  Subscribable = require 'subscribable-db' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
     initial = true,
+    useDB = true
   })
 else
   -- UPGRADE of example-process.lua
 
   -- We reuse all existing package state
-  Subscribable = require 'subscribable-db' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
     initial = false,
     existing = Subscribable
   })

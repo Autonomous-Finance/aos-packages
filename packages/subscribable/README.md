@@ -2,9 +2,12 @@
 
 ## Subscription provider capabilities for an AO process
 
-This package facilitates the development of AO processes that require the ability to register subscribers for specific topics and dispatch messages to them.
+This package facilitates the development of AO processes that require the ability to register subscribers for specific events and dispatch messages to them. Events are like topics in the pub-sub paradigm, but they allow for parameterization.
 
-This solution is based on **simple Lua tables**. If you require an sql-based solution, please refer to the [subscribable-db](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/subscribable-db/) package.
+The package comes in two flavours:
+
+1. The **vanilla** version is based on **simple Lua tables**.
+2. The **DB** version is based on **sqlite3**, which is natively available on AO.
 
 ## Features
 
@@ -13,15 +16,15 @@ This solution is based on **simple Lua tables**. If you require an sql-based sol
 1. register subscriber
 2. receive payment from subscriber (spam-protection / monetization) (only AOCRED)
 3. get available topics
-4. subscribe/unsubscribe a registered subscriber w/ specific topics
+4. subscribe/unsubscribe a registered subscriber w/ specific events
 
 ### API
 
-1. configure topics w/ corresponding event checks
+1. configure events w/ corresponding checks
 2. functions to implement the above Handlers or your own variations
 3. ability to register a process as whitelisted
-4. notify subscribers to given topics
-5. notify subscribers to given topics with event check
+4. notify subscribers to given events
+5. notify subscribers to given events with check
 
 ## Installation
 
@@ -31,14 +34,17 @@ APM.install('@autonomousfinance/subscribable')
 
 ## Usage
 
-1. Require the `subscribable` package in your Lua script
-2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding event checks
-3. Whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers
+1. Require the `subscribable` package in your Lua script, while specifying whether you want the DB version.
+2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported events and corresponding checks.
+3. In your process handlers, whenever event-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers.
 
 ```lua
 -- process.lua
 
-Subscribable = require("@autonomousfinance/subscribable")
+Subscribable = require "@autonomousfinance/subscribable" ({
+  initial = true,
+  useDB = false -- using the vanilla flavour
+})
 
 --[[ 
   now you have 
@@ -53,7 +59,7 @@ Subscribable = require("@autonomousfinance/subscribable")
     ...
 ]]
 
-Counter = Counter = 0
+Counter = Counter or 0
 
 Subscribable.configTopicsAndChecks({
   'even-counter',       -- topic name
@@ -76,6 +82,29 @@ Handlers.add(
 )
 ```
 
+### Explicit vs. Fully Automated
+
+For the sake of computational efficiency, we opted **against fully automated subscriber notifications**.
+
+It would have been possible to design the package such that *any state change* results in a check for events and then proceeds to notify all subscribers. 
+
+In contrast, `subscribable` gives you a framework to easily **configure** your custom event checks, in that you define
+
+1. what events are supported
+2. how the process state is checked to determine occurrence of a specific event
+
+after which **you decide** where in your process handlers you want to perform checks for any given event. 
+
+With the existing event checks being configured beforehand, your decision is coded declaratively - you can either 
+
+1. `.checkNotifyTopic(<some_topic>)` - this checks for `<some_topic>` as configured by you. If positive, subscribers are then notified.
+2. `.notifyTopic(<some_topic>)` - this notifies subscribers to `<some_topic>` without a check
+
+With this approach you have more control over the occurrence of computation related to event checks and notification sending.
+
+That being said, `subscribable` is designed to allow you to easily implement a **fully automated mechanism on top** of it, in your process which uses the package.
+
+
 ### No global state pollution
 
 Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed for subscribable capabilities is **encapsulated in the package module**.
@@ -94,7 +123,9 @@ Subscribable = require "@autonomousfinance/subscribable"({
 ```
 When doing that, you **pass in the previously used package module**, such that all the internal package state your process has been using so far, can be "adopted" by the new version of package.
 
-An example of this can be found in `example/example.lua`.
+Examples of this can be found in `example/example.lua` and `example/example-db.lua`.
+
+❗️ The configuration for vanilla or db can only be used when you first require `subscribable`. Upgrades will not allow you to change flavour.
 
 ## Overriding Functionality
 
@@ -183,15 +214,31 @@ Handlers.list = {
 }
 ```
 
-## Persistence
+## Persistence: Vanilla vs DB
 
-This package uses simple lua tables to persist balances and subscriptions.
+The vanilla flavour uses simple lua tables to persist balances and subscriptions.
 
-A highly scalable alternative would be to use sqlite tables. The downside there is some additional logical complexity and more verbose code, especially when extending the basic functionality.
+The DB flavour is highly scalable, suitable for processes with many subscribers. The downside there is some additional logical complexity and more verbose code, especially when extending the basic functionality.
 
-We've built this non-sql version for the purpose of developer convenience, for cases where it would be scalable enough.
+We've built this non-sql flavour for the purpose of developer convenience, for cases where it would be scalable enough.
+
+
 
 ## TODO
+
+
+- Get-Available-Topics (for autonomous agents)
+  - info handler, rather?
+  - topic names + metadata (json schema?)
+
+
+- Topics: how are they built/defined? parameters
+
+- custom payment token
+
+- topic parameter for lambda
+
+
 
 - remove subscriber
 - data validation -> multiple topics passed in on registration / on subscription / on unsubscription

@@ -25,6 +25,7 @@ if not Subscribable then
 
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
     initial = true,
+    useDB = false
   })
 else
   -- UPGRADE of example-process.lua

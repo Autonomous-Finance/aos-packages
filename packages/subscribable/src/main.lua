@@ -1,13 +1,22 @@
 local function newmodule(cfg)
-  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?") -- as a bug-safety measure, force the package user to be explicit
+  -- for bug-prevention, force the package user to be explicit
+  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?")
 
-  local pkg = cfg.existing or {}
+  -- for bug-prevention, force the package user to be explicit on initial require
+  assert(not cfg.initial or cfg.useDB ~= nil,
+    "cfg.useDb is required: are you using the sqlite version (true) or the Lua-table based version (false)?")
 
-  pkg.version = '1.0.0'
+  local pkg = cfg.existing or { useDB = cfg.useDB } -- useDB can only be set on initial; afterwards it remains the same
+
+  pkg.version = '1.1.0'
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 
-  require "subscriptions" (pkg)
+  if pkg.useDB then
+    require "subscriptions-db" (pkg)
+  else
+    require "subscriptions" (pkg)
+  end
 
   pkg.PAYMENT_TOKEN = 'Sa0iBLPNyJQrwpTTG-tWLQU-1QeUAJA73DdxGGiKoJc'
 

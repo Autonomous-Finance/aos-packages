@@ -6,6 +6,7 @@ else
     BIN_PATH="/opt/homebrew/bin"
 fi
 
+# 1. ------ build package source
 cd src
 
 $BIN_PATH/luacheck main.lua subscriptions.lua utils.lua
@@ -14,12 +15,16 @@ $BIN_PATH/amalg.lua -s main.lua -o ../build/main.lua subscriptions utils
 # prepend resets to the output file
 cat reset.lua | cat - ../build/main.lua > temp && mv temp ../build/main.lua
 
+# make package build available to example
 cp ../build/main.lua ../example/subscribable.lua
 
+
+# 2. ------ build example source
 cd ../example
 
-$BIN_PATH/luacheck example.lua
+$BIN_PATH/luacheck example.lua example-db.lua
 $BIN_PATH/amalg.lua -s example.lua -o ../build/example.lua subscribable
+$BIN_PATH/amalg.lua -s example-db.lua -o ../build/example-db.lua subscribable
 
 # prepend resets to the output file
-cat reset.lua | cat - ../build/example.lua > temp && mv temp ../build/example.lua
+cat reset.lua | cat - ../build/example-db.lua > temp && mv temp ../build/example-db.lua
