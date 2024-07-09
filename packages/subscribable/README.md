@@ -106,10 +106,13 @@ With this approach you have more control over the occurrence of computation rela
 That being said, `subscribable` is designed to allow you to easily implement a **fully automated mechanism on top** of it, in your process which uses the package.
 
 
-### No global state pollution
+### Minimal global state pollution
 
-Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed for subscribable capabilities is **encapsulated in the package module**.
-However, for upgradability we recommend assigning the required package to a global variable of your process (see below).
+The package affects nothing in the global space of your project, except for the `_G.Handlers.list` and `_G.DB` (if you opt for the *DB* flavour). The state needed for subscribable capabilities is **encapsulated in the package module**.
+
+When opting for the *DB* flavour you'll probably be using sqlite in your own application code. For an efficient and yet convenient usage, this package makes `DB = sqlite3.open_memory()` a global singleton so that you wouldn't have to access it via the required package. Please keep in mind that this assignment only occurs once you require `subscribable` into your process.
+
+For upgradability we recommend assigning the required package to a global variable of your process (see below).
 
 ## Upgrading your process
 

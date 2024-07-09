@@ -1,3 +1,4 @@
+local bint = require ".bint" (256)
 local json = require("json")
 local utils = require "utils"
 
@@ -10,20 +11,20 @@ local function newmodule(pkg)
   pkg.TopicsAndChecks = pkg.TopicsAndChecks or {}
 
 
-  local sqlschema = require('sqlschema')
+  pkg.PAYMENT_TOKEN = '8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ' -- BRKTST
+
 
   -- REGISTRATION
 
   function pkg.registerSubscriber(processId, ownerId, whitelisted)
-    local registeredSubscriber = sqlschema.getSubscriber(processId)
-    if registeredSubscriber then
+    if pkg.Registrations[processId] then
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having owner_id = ' .. registeredSubscriber.owner_id)
+        ' having ownerID = ' .. pkg.Subscriptions[processId].ownerID)
     end
 
-    sqlschema.registerSubscriber(processId, ownerId, whitelisted)
+    pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
 
     ao.send({
       Target = ao.id,
@@ -52,14 +53,33 @@ local function newmodule(pkg)
 
   function pkg.handleGetSubscriber(msg)
     local processId = msg.Tags['Subscriber-Process-Id']
+    local subscriberData = pkg._storage.getSubscriber(processId)
     ao.send({
       Target = msg.From,
-      Data = json.encode(sqlschema.getSubscriber(processId))
+      Data = json.encode(subscriberData)
     })
+  end
+
+  pkg.updateBalance = function(ownerId, tokenId, amount, isCredit)
+    local balanceEntry = pkg._storage.getBalanceEntry(ownerId, tokenId)
+    if not isCredit and not balanceEntry then
+      error('No balance entry exists for owner ' .. ownerId .. ' to be debited')
+    end
+
+    if not isCredit and balanceEntry.balance < amount then
+      error('Insufficient balance for owner ' .. ownerId .. ' to be debited')
+    end
+
+    pkg._storage.updateBalance(ownerId, tokenId, amount, isCredit)
   end
 
   function pkg.handleReceivePayment(msg)
     pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
+  end
+
+  --- @dev only the main process owner should be able allowed here
+  function pkg.handleSetPaymentToken(msg)
+    pkg.PAYMENT_TOKEN = msg.Tags.Token
   end
 
   -- TOPICS
@@ -85,7 +105,7 @@ local function newmodule(pkg)
   function pkg.handleGetInfo(msg)
     local info = {
       paymentToken = pkg.PAYMENT_TOKEN,
-      topics = utils.keysOf(pkg.TopicsAndChecks)
+      topics = pkg.getTopicsInfo()
     }
     ao.send({
       Target = msg.From,
@@ -98,7 +118,7 @@ local function newmodule(pkg)
   function pkg.subscribeToTopics(processId, ownerId, topics)
     pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
 
-    sqlschema.subscribeToTopics(processId, topics)
+    pkg._storage.subscribeToTopics(processId, topics)
 
     ao.send({
       Target = ao.id,
@@ -120,7 +140,7 @@ local function newmodule(pkg)
   function pkg.unsubscribeFromTopics(processId, ownerId, topics)
     pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
 
-    sqlschema.unsubscribeFromTopics(processId, topics)
+    pkg._storage.unsubscribeFromTopics(processId, topics)
 
     ao.send({
       Target = ao.id,
@@ -144,7 +164,7 @@ local function newmodule(pkg)
   -- core dispatch functionality
 
   function pkg.notifySubscribers(topic, payload)
-    local targets = sqlschema.getNotifiableSubscribersForTopic(topic)
+    local targets = pkg._storage.getNotifiableSubscribersForTopic(topic)
 
     if #targets > 0 then
       ao.send({
@@ -204,26 +224,12 @@ local function newmodule(pkg)
 
   -- HELPERS
 
-  pkg.updateBalance = function(ownerId, tokenId, amount, isCredit)
-    local balanceEntry = sqlschema.getBalanceEntry(ownerId, tokenId)
-    if not isCredit and not balanceEntry then
-      error('No balance entry exists for owner ' .. ownerId .. ' to be debited')
-    end
-
-    if not isCredit and balanceEntry.balance < amount then
-      error('Insufficient balance for owner ' .. ownerId .. ' to be debited')
-    end
-
-    sqlschema.updateBalance(ownerId, tokenId, amount, isCredit)
-  end
-
   pkg.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
-    local registeredSubscriber = sqlschema.getSubscriber()
-    if not registeredSubscriber then
+    if not pkg.Subscriptions[processId] then
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if registeredSubscriber.owner_id ~= ownerId then
+    if pkg.Subscriptions[processId].ownerID ~= ownerId then
       error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
     end
   end

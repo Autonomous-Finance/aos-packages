@@ -13,12 +13,12 @@ local function newmodule(cfg)
   -- pkg acts like the package "global", bundling the state and API functions of the package
 
   if pkg.useDB then
-    require "subscriptions-db" (pkg)
+    require "storage-db" (pkg)
   else
-    require "subscriptions" (pkg)
+    require "storage-vanilla" (pkg)
   end
 
-  pkg.PAYMENT_TOKEN = '8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ' -- BRKTST
+  require "pkg-api" (pkg)
 
   if cfg.initial then
     pkg.configTopics(cfg.topics)
