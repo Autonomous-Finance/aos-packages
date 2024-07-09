@@ -244,6 +244,16 @@ We've built this non-sql flavour for the purpose of developer convenience, for c
 
 
 
+- termination of a subscription
+
+- info on conditions for registration
+
+- topics, rather than events
+
+- unify more
+
+
+
 - remove subscriber
 - data validation -> multiple topics passed in on registration / on subscription / on unsubscription
 

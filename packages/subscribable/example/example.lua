@@ -87,7 +87,7 @@ Handlers.add(
 -- Check Functions use global state of this process (example.lua)
 -- in order to determine if the event is occurring
 
-local checkNotifyCounter = function()
+local checkNotifyEvenCounter = function()
   if Counter % 2 == 0 then
     return true, {
       counter = Counter,
@@ -105,7 +105,30 @@ local checkNotifyGreeting = function()
   return false
 end
 
+local checkNotifyHighCounter = function(threshold)
+  if Counter > threshold then
+    return true, {
+      counter = Counter,
+    }
+  end
+  return false
+end
+
 Subscribable.configTopicsAndChecks({
-  ['even-counter'] = checkNotifyCounter,
-  ['gm-greeting'] = checkNotifyGreeting
+  ['even-counter'] = {
+    checkFn = checkNotifyEvenCounter,
+    description = 'Counter is even'
+  },
+  ['gm-greeting'] = {
+    checkFn = checkNotifyGreeting,
+    description = 'Greeting contains "gm" (any casing)'
+  },
+  ['high-counter'] = {
+    description = 'Counter is higher than or equal to a threshold',
+    params = {
+      ['threshold'] = 'The threshold to compare the Counter to'
+    },
+    checkFn = checkNotifyHighCounter,
+    checkFnParams = { 'Counter' },
+  }
 })

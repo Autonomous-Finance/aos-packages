@@ -46,9 +46,9 @@ local function newmodule(cfg)
   )
 
   Handlers.add(
-    "subscribable.Get-Available-Topics",
-    Handlers.utils.hasMatchingTag("Action", "Get-Available-Topics"),
-    pkg.handleGetAvailableTopics
+    "subscribable.Info",
+    Handlers.utils.hasMatchingTag("Action", "Info"),
+    pkg.handleGetInfo
   )
 
   Handlers.add(
