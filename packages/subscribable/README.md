@@ -235,30 +235,18 @@ We've built this non-sql flavour for the purpose of developer convenience, for c
 
 ## TODO
 
-
-- Get-Available-Topics (for autonomous agents)
-  - info handler, rather?
-  - topic names + metadata (json schema?)
+### docs
+- Topics README section: how are they built/defined? parameters
 
 
-- Topics: how are they built/defined? parameters
-
-- topic parameter for lambda
-
-
+### functionality 
+- topics w/ parameter for lambda
 
 - termination of a subscription
 
-- info on conditions for registration
-
-- topics, rather than events
-
-- unify more
-
-
-
 - remove subscriber
+
+
 - data validation -> multiple topics passed in on registration / on subscription / on unsubscription
 
-- Subscriptions and Balances - reconsider data structures (subscriptions and balances) for maximum efficiency
 - (v2) balance subtraction "pay as you go", since we don't use cron and can't as easily predict outcomes

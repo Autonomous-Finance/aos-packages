@@ -108,12 +108,14 @@ Subscribable.configTopicsAndChecks({
     checkFn = checkNotifyEvenCounter,
     payloadFn = payloadForEvenCounter,
     description = 'Counter is even',
-    returns = '{ "counter" : number }'
+    returns = '{ "counter" : number }',
+    subscriptionBasis = "Payment of 1 " .. Subscribable.PAYMENT_TOKEN_TICKER
   },
   ['gm-greeting'] = {
     checkFn = checkNotifyGreeting,
     payloadFn = payloadForGreeting,
     description = 'Greeting contains "gm" (any casing)',
-    returns = '{ "greeting" : string }'
+    returns = '{ "greeting" : string }',
+    subscriptionBasis = "Payment of 1 " .. Subscribable.PAYMENT_TOKEN_TICKER
   }
 })

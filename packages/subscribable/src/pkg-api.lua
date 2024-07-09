@@ -11,7 +11,8 @@ local function newmodule(pkg)
   pkg.TopicsAndChecks = pkg.TopicsAndChecks or {}
 
 
-  pkg.PAYMENT_TOKEN = '8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ' -- BRKTST
+  pkg.PAYMENT_TOKEN = '8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ'
+  pkg.PAYMENT_TOKEN_TICKER = 'BRKTST'
 
 
   -- REGISTRATION
@@ -95,6 +96,7 @@ local function newmodule(pkg)
       topicsInfo[topic] = {
         description = topicInfo.description,
         returns = topicInfo.returns,
+        subscriptionBasis = topicInfo.subscriptionBasis
       }
     end
 
