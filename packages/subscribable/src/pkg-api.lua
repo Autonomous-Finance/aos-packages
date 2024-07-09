@@ -94,8 +94,7 @@ local function newmodule(pkg)
       local topicInfo = pkg.TopicsAndChecks[topic]
       topicsInfo[topic] = {
         description = topicInfo.description,
-        type = topicInfo.params and 'dynamic' or 'static',
-        params = topicInfo.params,
+        returns = topicInfo.returns,
       }
     end
 
@@ -164,7 +163,7 @@ local function newmodule(pkg)
   -- core dispatch functionality
 
   function pkg.notifySubscribers(topic, payload)
-    local targets = pkg._storage.getNotifiableSubscribersForTopic(topic)
+    local targets = pkg._storage.getTargetsForTopic(topic)
 
     if #targets > 0 then
       ao.send({
@@ -194,24 +193,11 @@ local function newmodule(pkg)
 
   -- notify with configured checks
 
-  local function callCheckFn(fn, paramNames)
-    if not paramNames then return fn() end
-
-    local params = utils.map(
-      function(paramName) return _G[paramName] end,
-      paramNames
-    )
-    ---@diagnostic disable-next-line: param-type-mismatch
-    return fn(table.unpack(params))
-  end
-
   function pkg.checkNotifyTopics(topics, timestamp)
     for _, topic in ipairs(topics) do
-      local checkFn = pkg.TopicsAndChecks[topic].check
-      local checkFnParams = pkg.TopicsAndChecks[topic].params
-
-      local notify, payload = callCheckFn(checkFn, checkFnParams)
-      if notify then
+      local shouldNotify = pkg.TopicsAndChecks[topic].checkFn()
+      if shouldNotify then
+        local payload = pkg.TopicsAndChecks[topic].payloadFn()
         payload.timestamp = timestamp
         pkg.notifySubscribers(topic, payload)
       end

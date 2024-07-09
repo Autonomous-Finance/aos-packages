@@ -2,7 +2,7 @@
 
 ## Subscription provider capabilities for an AO process
 
-This package facilitates the development of AO processes that require the ability to register subscribers for specific events and dispatch messages to them. Events are like topics in the pub-sub paradigm, but they allow for parameterization.
+This package facilitates the development of AO processes that require the ability to register subscribers for events concerning specific topics, such that notifications are dispatched to the subscribers whenever the topic-related events occur.
 
 The package comes in two flavours:
 
@@ -16,15 +16,15 @@ The package comes in two flavours:
 1. register subscriber
 2. receive payment from subscriber (spam-protection / monetization) (only AOCRED)
 3. get available topics
-4. subscribe/unsubscribe a registered subscriber w/ specific events
+4. subscribe/unsubscribe a registered subscriber w/ specific topics
 
 ### API
 
-1. configure events w/ corresponding checks
+1. configure topics w/ corresponding checks
 2. functions to implement the above Handlers or your own variations
 3. ability to register a process as whitelisted (not gated)
-4. notify subscribers to given events
-5. notify subscribers to given events with check
+4. notify subscribers to given topics
+5. notify subscribers to given topics with checks
 6. configure the payment token (not gated)
 
 ## Installation
@@ -36,8 +36,8 @@ APM.install('@autonomousfinance/subscribable')
 ## Usage
 
 1. Require the `subscribable` package in your Lua script, while specifying whether you want the DB version.
-2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported events and corresponding checks.
-3. In your process handlers, whenever event-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers.
+2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding checks.
+3. In your process handlers, whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers.
 
 ```lua
 -- process.lua
@@ -64,7 +64,7 @@ Counter = Counter or 0
 
 Subscribable.configTopicsAndChecks({
   'even-counter',       -- topic name
-  function()            -- a check function to determine if the event occurs & generate a notification payload
+  function()            -- a check function to determine if the event of the occurs & generate a notification payload
     if Counter % 2 == 0 then return true, {counter = Counter} end
     return false
   end
@@ -78,7 +78,7 @@ Handlers.add(
     -- state change
     Counter = Counter + 1
     -- notifications
-    sub.checkNotifyTopic('even-counter') -- sends out notifications based on check and payload from the event check function you configured
+    sub.checkNotifyTopic('even-counter') -- sends out notifications based on check and payload from the topic event check function you configured
   end
 )
 ```
@@ -87,21 +87,21 @@ Handlers.add(
 
 For the sake of computational efficiency, we opted **against fully automated subscriber notifications**.
 
-It would have been possible to design the package such that *any state change* results in a check for events and then proceeds to notify all subscribers. 
+It would have been possible to design the package such that *any state change* results in a check for topic events and then proceeds to notify all subscribers. 
 
-In contrast, `subscribable` gives you a framework to easily **configure** your custom event checks, in that you define
+In contrast, `subscribable` gives you a framework to easily **configure** your custom topic event checks, in that you define
 
-1. what events are supported
-2. how the process state is checked to determine occurrence of a specific event
+1. what topics are supported
+2. how the process state is checked to determine occurrence of a specific topic event
 
-after which **you decide** where in your process handlers you want to perform checks for any given event. 
+after which **you decide** where in your process handlers you want to perform checks for any given topic event. 
 
-With the existing event checks being configured beforehand, your decision is coded declaratively - you can either 
+With the existing topic event checks being configured beforehand, your decision is coded declaratively - you can either 
 
 1. `.checkNotifyTopic(<some_topic>)` - this checks for `<some_topic>` as configured by you. If positive, subscribers are then notified.
 2. `.notifyTopic(<some_topic>)` - this notifies subscribers to `<some_topic>` without a check
 
-With this approach you have more control over the occurrence of computation related to event checks and notification sending.
+With this approach you have more control over the occurrence of computation related to topic event checks and notification sending.
 
 That being said, `subscribable` is designed to allow you to easily implement a **fully automated mechanism on top** of it, in your process which uses the package.
 

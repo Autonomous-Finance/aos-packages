@@ -88,47 +88,32 @@ Handlers.add(
 -- in order to determine if the event is occurring
 
 local checkNotifyEvenCounter = function()
-  if Counter % 2 == 0 then
-    return true, {
-      counter = Counter,
-    }
-  end
-  return false
+  return Counter % 2 == 0
+end
+
+local payloadForEvenCounter = function()
+  return { counter = Counter }
 end
 
 local checkNotifyGreeting = function()
-  if string.find(string.lower(Greeting), "gm") then
-    return true, {
-      greeting = Greeting,
-    }
-  end
-  return false
+  return string.find(string.lower(Greeting), "gm")
 end
 
-local checkNotifyHighCounter = function(threshold)
-  if Counter > threshold then
-    return true, {
-      counter = Counter,
-    }
-  end
-  return false
+local payloadForGreeting = function()
+  return { greeting = Greeting }
 end
 
 Subscribable.configTopicsAndChecks({
   ['even-counter'] = {
     checkFn = checkNotifyEvenCounter,
-    description = 'Counter is even'
+    payloadFn = payloadForEvenCounter,
+    description = 'Counter is even',
+    returns = '{ "counter" : number }'
   },
   ['gm-greeting'] = {
     checkFn = checkNotifyGreeting,
-    description = 'Greeting contains "gm" (any casing)'
-  },
-  ['high-counter'] = {
-    description = 'Counter is higher than or equal to a threshold',
-    params = {
-      ['threshold'] = 'The threshold to compare the Counter to'
-    },
-    checkFn = checkNotifyHighCounter,
-    checkFnParams = { 'Counter' },
+    payloadFn = payloadForGreeting,
+    description = 'Greeting contains "gm" (any casing)',
+    returns = '{ "greeting" : string }'
   }
 })

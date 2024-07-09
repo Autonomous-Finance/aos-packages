@@ -177,7 +177,7 @@ local function newmodule(pkg)
 
   -- NOTIFICATIONS
 
-  function sql.getNotifiableSubscribersForTopic(topic)
+  function sql.getTargetsForTopic(topic)
     local stmt = DB:prepare [[
     SELECT process_id
     FROM subscriptions as subs

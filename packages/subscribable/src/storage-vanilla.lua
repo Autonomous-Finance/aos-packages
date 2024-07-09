@@ -76,7 +76,7 @@ local function newmodule(pkg)
 
   -- NOTIFICATIONS
 
-  function mod.getNotifiableSubscribersForTopic(topic)
+  function mod.getTargetsForTopic(topic)
     local targets = {}
     for k, v in pairs(mod.Subscriptions) do
       local mayReceiveNotification = mod.hasBalance(v.ownerId) or v.whitelisted
