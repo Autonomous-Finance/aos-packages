@@ -38,6 +38,9 @@ local function newmodule(pkg)
   end
 
   function pkg.handleRegisterSubscriber(msg)
+    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
+    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, false)
@@ -131,6 +134,10 @@ local function newmodule(pkg)
   end
 
   function pkg.handleSubscribeToTopics(msg)
+    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
+    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+    assert(msg.Tags['Topics'], 'Topics is required')
+
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     local topics = json.decode(msg.Tags['Topics'])
