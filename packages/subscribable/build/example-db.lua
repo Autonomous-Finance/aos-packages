@@ -528,7 +528,7 @@ local function newmodule(pkg)
   function mod.subscribeToTopics(processId, topics)
     local existingTopics = mod.Subscriptions[processId].topics
     for _, topic in ipairs(topics) do
-      if not utils.find(existingTopics, topic) then
+      if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
       end
     end
