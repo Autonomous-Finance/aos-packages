@@ -16,7 +16,7 @@ local function newmodule(pkg)
   -- REGISTRATION
 
   function pkg.registerSubscriber(processId, ownerId, whitelisted)
-    if pkg.Registrations[processId] then
+    if pkg.Subscriptions[processId] then
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
