@@ -1,5 +1,5 @@
 local bint = require ".bint" (256)
-local utils = require "utils"
+local utils = require ".utils"
 
 local function newmodule(pkg)
   local mod = {}

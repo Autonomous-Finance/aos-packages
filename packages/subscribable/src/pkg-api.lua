@@ -1,6 +1,4 @@
-local bint = require ".bint" (256)
 local json = require("json")
-local utils = require "utils"
 
 local function newmodule(pkg)
   --[[
