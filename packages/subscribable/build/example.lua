@@ -29,7 +29,7 @@ local function newmodule(pkg)
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having ownerID = ' .. pkg.Subscriptions[processId].ownerID)
+        ' having ownerId = ' .. pkg.Subscriptions[processId].ownerId)
     end
 
     pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
@@ -224,8 +224,8 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if pkg.Subscriptions[processId].ownerID ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
+    if pkg.Subscriptions[processId].ownerId ~= ownerId then
+      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end
@@ -476,7 +476,7 @@ local function newmodule(pkg)
   --[[
     {
       processId: ID = {
-        ownerID: ID,
+        ownerId: ID,
         topics: string[],
         whitelisted: boolean -- if true, receives data without the need to pay
       }
@@ -566,8 +566,8 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if mod.Subscriptions[processId].ownerID ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
+    if mod.Subscriptions[processId].ownerId ~= ownerId then
+      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end

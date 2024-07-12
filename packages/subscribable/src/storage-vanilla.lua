@@ -8,7 +8,7 @@ local function newmodule(pkg)
   --[[
     {
       processId: ID = {
-        ownerID: ID,
+        ownerId: ID,
         topics: string[],
         whitelisted: boolean -- if true, receives data without the need to pay
       }
@@ -98,8 +98,8 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if mod.Subscriptions[processId].ownerID ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
+    if mod.Subscriptions[processId].ownerId ~= ownerId then
+      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end

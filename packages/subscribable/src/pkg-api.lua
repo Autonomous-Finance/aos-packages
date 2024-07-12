@@ -20,7 +20,7 @@ local function newmodule(pkg)
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having ownerID = ' .. pkg.Subscriptions[processId].ownerID)
+        ' having ownerId = ' .. pkg.Subscriptions[processId].ownerId)
     end
 
     pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
@@ -215,8 +215,8 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if pkg.Subscriptions[processId].ownerID ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
+    if pkg.Subscriptions[processId].ownerId ~= ownerId then
+      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end
