@@ -92,16 +92,6 @@ local function newmodule(pkg)
   mod.hasBalance = function(ownerId)
     return mod.Balances[ownerId] and bint(mod.Balances[ownerId]) > 0
   end
-
-  mod.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
-    if not mod.Subscriptions[processId] then
-      error('process ' .. processId .. ' is not registered as a subscriber')
-    end
-
-    if mod.Subscriptions[processId].ownerId ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
-    end
-  end
 end
 
 return newmodule
