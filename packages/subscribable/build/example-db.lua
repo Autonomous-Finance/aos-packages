@@ -26,11 +26,13 @@ local function newmodule(pkg)
   -- REGISTRATION
 
   function pkg.registerSubscriber(processId, ownerId, whitelisted)
-    if pkg.Subscriptions[processId] then
+    local subscriberData = pkg._storage.getSubscriber(processId)
+
+    if subscriberData then
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having ownerId = ' .. pkg.Subscriptions[processId].ownerId)
+        ' having ownerId = ' .. subscriberData.ownerId)
     end
 
     pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
