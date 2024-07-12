@@ -598,10 +598,6 @@ local function newmodule(cfg)
 
   require "pkg-api" (pkg)
 
-  if cfg.initial then
-    pkg.configTopics(cfg.topics)
-  end
-
   Handlers.add(
     "subscribable.Register-Subscriber",
     Handlers.utils.hasMatchingTag("Action", "Register-Subscriber"),
