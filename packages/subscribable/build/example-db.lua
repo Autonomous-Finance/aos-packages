@@ -49,7 +49,7 @@ local function newmodule(pkg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, false)
-    pkg.subscribeToTopics(msg)
+    pkg.handleSubscribeToTopics(msg)
   end
 
   --- @dev only the main process owner should be able allowed here
@@ -57,7 +57,7 @@ local function newmodule(pkg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, true)
-    pkg.subscribeToTopics(msg)
+    pkg.handleSubscribeToTopics(msg)
   end
 
   function pkg.handleGetSubscriber(msg)
