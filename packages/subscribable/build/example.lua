@@ -25,11 +25,13 @@ local function newmodule(pkg)
   -- REGISTRATION
 
   function pkg.registerSubscriber(processId, ownerId, whitelisted)
-    if pkg.Subscriptions[processId] then
+    local subscriberData = pkg._storage.getSubscriber(processId)
+
+    if subscriberData then
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having ownerId = ' .. pkg.Subscriptions[processId].ownerId)
+        ' having ownerId = ' .. subscriberData.ownerId)
     end
 
     pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
@@ -45,6 +47,9 @@ local function newmodule(pkg)
   end
 
   function pkg.handleRegisterSubscriber(msg)
+    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
+    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, false)
@@ -133,14 +138,18 @@ local function newmodule(pkg)
       Assignments = { ownerId, processId },
       Action = 'Subscribe-To-Topics',
       Process = processId,
-      Topics = topics
+      Topics = json.encode(topics)
     })
   end
 
   function pkg.handleSubscribeToTopics(msg)
+    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
+    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+    assert(msg.Tags['Topics'], 'Topics is required')
+
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
-    local topics = msg.Tags['Topics']
+    local topics = json.decode(msg.Tags['Topics'])
 
     pkg.subscribeToTopics(processId, ownerId, topics)
   end
@@ -155,7 +164,7 @@ local function newmodule(pkg)
       Assignments = { processId },
       Action = 'Unsubscribe-From-Topics',
       Process = processId,
-      Topics = topics
+      Topics = json.encode(topics)
     })
   end
 
@@ -220,11 +229,12 @@ local function newmodule(pkg)
   -- HELPERS
 
   pkg.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
-    if not pkg.Subscriptions[processId] then
+    local subscriberData = pkg._storage.getSubscriber(processId)
+    if not subscriberData then
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if pkg.Subscriptions[processId].ownerId ~= ownerId then
+    if subscriberData.ownerId ~= ownerId then
       error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
@@ -504,8 +514,8 @@ local function newmodule(pkg)
     }
   end
 
-  function mod.getSubscriber(msg)
-    return mod.Subscriptions[msg.Tags['Subscriber-Process-Id']]
+  function mod.getSubscriber(processId)
+    return mod.Subscriptions[processId]
   end
 
   function mod.updateBalance(ownerId, tokenId, amount, isCredit)
@@ -524,7 +534,7 @@ local function newmodule(pkg)
   function mod.subscribeToTopics(processId, topics)
     local existingTopics = mod.Subscriptions[processId].topics
     for _, topic in ipairs(topics) do
-      if not utils.find(existingTopics, topic) then
+      if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
       end
     end
@@ -560,16 +570,6 @@ local function newmodule(pkg)
   mod.hasBalance = function(ownerId)
     return mod.Balances[ownerId] and bint(mod.Balances[ownerId]) > 0
   end
-
-  mod.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
-    if not mod.Subscriptions[processId] then
-      error('process ' .. processId .. ' is not registered as a subscriber')
-    end
-
-    if mod.Subscriptions[processId].ownerId ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
-    end
-  end
 end
 
 return newmodule
@@ -597,10 +597,6 @@ local function newmodule(cfg)
   end
 
   require "pkg-api" (pkg)
-
-  if cfg.initial then
-    pkg.configTopics(cfg.topics)
-  end
 
   Handlers.add(
     "subscribable.Register-Subscriber",
