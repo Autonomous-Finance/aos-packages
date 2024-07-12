@@ -1,4 +1,3 @@
-package.loaded["utils"] = nil
-package.loaded["subscriptions"] = nil
-package.loaded["subscriptions-db"] = nil
-package.loaded["sqlschema"] = nil
+package.loaded["pkg-api"] = nil
+package.loaded["storage-vanilla"] = nil
+package.loaded["storage-db"] = nil

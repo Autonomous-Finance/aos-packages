@@ -9,8 +9,8 @@ fi
 # 1. ------ build package source
 cd src
 
-$BIN_PATH/luacheck main.lua subscriptions.lua utils.lua
-$BIN_PATH/amalg.lua -s main.lua -o ../build/main.lua subscriptions utils
+$BIN_PATH/luacheck main.lua pkg-api.lua storage-vanilla.lua storage-db.lua
+$BIN_PATH/amalg.lua -s main.lua -o ../build/main.lua pkg-api storage-vanilla storage-db
 
 # prepend resets to the output file
 cat reset.lua | cat - ../build/main.lua > temp && mv temp ../build/main.lua

@@ -1,6 +1,4 @@
-local bint = require ".bint" (256)
 local json = require("json")
-local utils = require "utils"
 
 local function newmodule(pkg)
   --[[
@@ -18,11 +16,11 @@ local function newmodule(pkg)
   -- REGISTRATION
 
   function pkg.registerSubscriber(processId, ownerId, whitelisted)
-    if pkg.Registrations[processId] then
+    if pkg.Subscriptions[processId] then
       error('process ' ..
         processId ..
         ' already registered as a subscriber ' ..
-        ' having ownerID = ' .. pkg.Subscriptions[processId].ownerID)
+        ' having ownerId = ' .. pkg.Subscriptions[processId].ownerId)
     end
 
     pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
@@ -41,7 +39,7 @@ local function newmodule(pkg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, false)
-    pkg.subscribeToTopics(msg)
+    pkg.handleSubscribeToTopics(msg)
   end
 
   --- @dev only the main process owner should be able allowed here
@@ -49,7 +47,7 @@ local function newmodule(pkg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
     pkg.registerSubscriber(processId, ownerId, true)
-    pkg.subscribeToTopics(msg)
+    pkg.handleSubscribeToTopics(msg)
   end
 
   function pkg.handleGetSubscriber(msg)
@@ -217,8 +215,8 @@ local function newmodule(pkg)
       error('process ' .. processId .. ' is not registered as a subscriber')
     end
 
-    if pkg.Subscriptions[processId].ownerID ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerID ' .. ownerId)
+    if pkg.Subscriptions[processId].ownerId ~= ownerId then
+      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end

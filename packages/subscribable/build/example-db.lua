@@ -1,3 +1,4 @@
+package.loaded["subscribable"] = nil
 do
 local _ENV = _ENV
 package.preload[ "subscribable" ] = function( ... ) local arg = _G.arg;
@@ -674,7 +675,7 @@ if not Subscribable then
 
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
     initial = true,
-    useDB = false
+    useDB = true
   })
 else
   -- UPGRADE of example-process.lua
@@ -736,35 +737,25 @@ Handlers.add(
 -- Check Functions use global state of this process (example.lua)
 -- in order to determine if the event is occurring
 
-local checkNotifyEvenCounter = function()
-  return Counter % 2 == 0
-end
-
-local payloadForEvenCounter = function()
-  return { counter = Counter }
+local checkNotifyCounter = function()
+  if Counter % 2 == 0 then
+    return true, {
+      counter = Counter,
+    }
+  end
+  return false
 end
 
 local checkNotifyGreeting = function()
-  return string.find(string.lower(Greeting), "gm")
-end
-
-local payloadForGreeting = function()
-  return { greeting = Greeting }
+  if string.find(string.lower(Greeting), "gm") then
+    return true, {
+      greeting = Greeting,
+    }
+  end
+  return false
 end
 
 Subscribable.configTopicsAndChecks({
-  ['even-counter'] = {
-    checkFn = checkNotifyEvenCounter,
-    payloadFn = payloadForEvenCounter,
-    description = 'Counter is even',
-    returns = '{ "counter" : number }',
-    subscriptionBasis = "Payment of 1 " .. Subscribable.PAYMENT_TOKEN_TICKER
-  },
-  ['gm-greeting'] = {
-    checkFn = checkNotifyGreeting,
-    payloadFn = payloadForGreeting,
-    description = 'Greeting contains "gm" (any casing)',
-    returns = '{ "greeting" : string }',
-    subscriptionBasis = "Payment of 1 " .. Subscribable.PAYMENT_TOKEN_TICKER
-  }
+  ['even-counter'] = checkNotifyCounter,
+  ['gm-greeting'] = checkNotifyGreeting
 })
