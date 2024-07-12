@@ -126,14 +126,14 @@ local function newmodule(pkg)
       Assignments = { ownerId, processId },
       Action = 'Subscribe-To-Topics',
       Process = processId,
-      Topics = topics
+      Topics = json.encode(topics)
     })
   end
 
   function pkg.handleSubscribeToTopics(msg)
     local processId = msg.Tags['Subscriber-Process-Id']
     local ownerId = msg.Tags['Owner-Id']
-    local topics = msg.Tags['Topics']
+    local topics = json.decode(msg.Tags['Topics'])
 
     pkg.subscribeToTopics(processId, ownerId, topics)
   end
@@ -148,7 +148,7 @@ local function newmodule(pkg)
       Assignments = { processId },
       Action = 'Unsubscribe-From-Topics',
       Process = processId,
-      Topics = topics
+      Topics = json.encode(topics)
     })
   end
 
