@@ -36,8 +36,8 @@ local function newmodule(pkg)
     }
   end
 
-  function mod.getSubscriber(msg)
-    return mod.Subscriptions[msg.Tags['Subscriber-Process-Id']]
+  function mod.getSubscriber(processId)
+    return mod.Subscriptions[processId]
   end
 
   function mod.updateBalance(ownerId, tokenId, amount, isCredit)
