@@ -44,7 +44,7 @@ local function newmodule(cfg)
 
   Handlers.add(
     "subscribable.Info",
-    Handlers.utils.hasMatchingTag("Action", "Info"),
+    Handlers.utils.hasMatchingTag("Action", "subscribable.Info"),
     pkg.handleGetInfo
   )
 
