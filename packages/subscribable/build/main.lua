@@ -85,6 +85,12 @@ local function newmodule(pkg)
 
   function pkg.handleReceivePayment(msg)
     pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
+    ao.send({
+      Target = msg.From,
+      ["Response-For"] = "Pay-For-Subscription",
+      OK = "true"
+    })
+    print('Received subscription payment from ' .. msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' '.. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
   end
 
   --- @dev only the main process owner should be able allowed here
@@ -112,15 +118,12 @@ local function newmodule(pkg)
     return topicsInfo
   end
 
-  function pkg.handleGetInfo(msg)
-    local info = {
+  function pkg.getInfo()
+    return {
+      paymentTokenTicker = pkg.PAYMENT_TOKEN_TICKER,
       paymentToken = pkg.PAYMENT_TOKEN,
       topics = pkg.getTopicsInfo()
     }
-    ao.send({
-      Target = msg.From,
-      Data = json.encode(info)
-    })
   end
 
   -- SUBSCRIPTIONS
@@ -565,7 +568,27 @@ local function newmodule(pkg)
   -- HELPERS
 
   mod.hasBalance = function(ownerId)
-    return mod.Balances[ownerId] and bint(mod.Balances[ownerId]) > 0
+    return mod.Balances[ownerId] and bint(mod.Balances[ownerId].amount) > 0
+  end
+
+  mod.isSubscribedTo = function(processId, topic)
+    local subscription = mod.Subscriptions[processId]
+    if not subscription then return false end
+
+    for _, subscribedTopic in ipairs(subscription.topics) do
+      if subscribedTopic == topic then
+        return true
+      end
+    end
+    return false
+  end
+
+  mod.getBalanceEntry = function(ownerId, tokenId)
+    if mod.Balances[ownerId] and mod.Balances[ownerId].tokenId == tokenId then
+      return {
+        balance = mod.Balances[ownerId].amount
+      }
+    end
   end
 end
 
@@ -611,15 +634,10 @@ local function newmodule(cfg)
     "subscribable.Receive-Payment",
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
+          and Handlers.utils.hasMatchingTag("X-Action", "Pay-For-Subscription")(msg)
           and msg.From == pkg.PAYMENT_TOKEN
     end,
     pkg.handleReceivePayment
-  )
-
-  Handlers.add(
-    "subscribable.Info",
-    Handlers.utils.hasMatchingTag("Action", "Info"),
-    pkg.handleGetInfo
   )
 
   Handlers.add(

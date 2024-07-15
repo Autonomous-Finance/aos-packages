@@ -99,6 +99,12 @@ local function newmodule(cfg)
 
   -- API
 
+  pkg.getInfo = function ()
+    return {
+      Owner = Owner
+    }
+  end
+
   pkg.onlyOwner = function(msg)
     if pkg.Owners == nil then
       assert(msg.From == Owner, "Only the owner is allowed")

@@ -112,16 +112,12 @@ local function newmodule(pkg)
     return topicsInfo
   end
 
-  function pkg.handleGetInfo(msg)
-    local info = {
+  function pkg.getInfo()
+    return {
       paymentTokenTicker = pkg.PAYMENT_TOKEN_TICKER,
       paymentToken = pkg.PAYMENT_TOKEN,
       topics = pkg.getTopicsInfo()
     }
-    ao.send({
-      Target = msg.From,
-      Data = json.encode(info)
-    })
   end
 
   -- SUBSCRIPTIONS
