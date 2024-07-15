@@ -36,6 +36,7 @@ local function newmodule(cfg)
     "subscribable.Receive-Payment",
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
+          and Handlers.utils.hasMatchingTag("X-Action", "Pay-For-Subscription")(msg)
           and msg.From == pkg.PAYMENT_TOKEN
     end,
     pkg.handleReceivePayment
@@ -43,7 +44,7 @@ local function newmodule(cfg)
 
   Handlers.add(
     "subscribable.Info",
-    Handlers.utils.hasMatchingTag("Action", "Info"),
+    Handlers.utils.hasMatchingTag("Action", "subscribable.Info"),
     pkg.handleGetInfo
   )
 

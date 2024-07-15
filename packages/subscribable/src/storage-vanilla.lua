@@ -90,7 +90,27 @@ local function newmodule(pkg)
   -- HELPERS
 
   mod.hasBalance = function(ownerId)
-    return mod.Balances[ownerId] and bint(mod.Balances[ownerId]) > 0
+    return mod.Balances[ownerId] and bint(mod.Balances[ownerId].amount) > 0
+  end
+
+  mod.isSubscribedTo = function(processId, topic)
+    local subscription = mod.Subscriptions[processId]
+    if not subscription then return false end
+
+    for _, subscribedTopic in ipairs(subscription.topics) do
+      if subscribedTopic == topic then
+        return true
+      end
+    end
+    return false
+  end
+
+  mod.getBalanceEntry = function(ownerId, tokenId)
+    if mod.Balances[ownerId] and mod.Balances[ownerId].tokenId == tokenId then
+      return {
+        balance = mod.Balances[ownerId].amount
+      }
+    end
   end
 end
 

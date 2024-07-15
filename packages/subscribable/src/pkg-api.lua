@@ -79,6 +79,12 @@ local function newmodule(pkg)
 
   function pkg.handleReceivePayment(msg)
     pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
+    ao.send({
+      Target = msg.From,
+      ["Response-For"] = "Pay-For-Subscription",
+      OK = "true"
+    })
+    print('Received subscription payment from ' .. msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' '.. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
   end
 
   --- @dev only the main process owner should be able allowed here
@@ -108,6 +114,7 @@ local function newmodule(pkg)
 
   function pkg.handleGetInfo(msg)
     local info = {
+      paymentTokenTicker = pkg.PAYMENT_TOKEN_TICKER,
       paymentToken = pkg.PAYMENT_TOKEN,
       topics = pkg.getTopicsInfo()
     }
