@@ -219,7 +219,7 @@ Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSu
 
 ## Subscription Model
 
-1. Subscription clients subscribe and unsubscribe themselves
+1. Subscription clients subscribe and unsubscribe **themselves**
 2. Subscriptions are not active by default. In the current implementation, their activation requires one of these conditions
    1. the client is registered as **whitelisted**
    2. there is a **subscription payment** associated with the client
@@ -228,15 +228,15 @@ Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSu
 The current implementation includes a function `pkg.handleRegisterWhitelistedSubscriber(msg)`, but it is not exposed in a handler. You can do so if you need to
 
 ### Payments
-Susbcriptions can be paid for by anyone, the reference being the **process id** of the subscriber (client).
+Susbcriptions can be **paid for by anyone**, the reference being the **process id** of the subscriber (client).
 
 The current implementation has a simple activation criteria: it only checks for the balance to be non-zero.
 
-If you need to customize this, your best place to do so would be
+To customize this, you can override the relevant API function
 - VANILLA VERSION: override `pkg.hasEnoughBalance(processId)` -> see `src/storage-vanilla.lua` for reference
 - DB VERSION: override `pgk._store.getTargetsForTopic(topic)` -> see `src/storage-db.lua` for reference
 
-You can find an example how to override an API function in a section [above](#2-you-can-override-more-specific-api-functions-of-this-package).
+You can find an example on how to override an API function in a section [above](#2-you-can-override-more-specific-api-functions-of-this-package).
 
 ### Example 
 
