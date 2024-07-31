@@ -60,7 +60,7 @@ local function newmodule(pkg)
   end
 
   function sql.updateBalance(processId, amount, isCredit)
-    local currentBalance = sql.getBalance(processId)
+    local currentBalance = bint(sql.getBalance(processId))
     local diff = isCredit and bint(amount) or -bint(amount)
     local newBalance = tostring(currentBalance + diff)
 
@@ -91,7 +91,7 @@ local function newmodule(pkg)
       error("Failed to prepare SQL statement for getting balance entry: " .. DB:errmsg())
     end
     stmt:bind_names({ process_id = processId })
-    return sql.queryOne(stmt)
+    return sql.queryOne(stmt).balance
   end
 
   -- SUBSCRIPTION
