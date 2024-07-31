@@ -221,8 +221,8 @@ Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSu
 
 1. Subscription clients subscribe and unsubscribe **themselves**
 2. Subscriptions are not active by default. In the current implementation, their activation requires one of these conditions
-   1. the client is registered as **whitelisted**
-   2. there is a **subscription payment** associated with the client
+   1. the client is registered as **whitelisted** (by you, the owner of the subscription server); this works well for partnerships
+   2. the server receives is a **subscription payment** associated with the client; this can be refined to suit your business needs
 
 ### Whitelisting 
 The current implementation includes a function `pkg.handleRegisterWhitelistedSubscriber(msg)`, but it is not exposed in a handler. You can do so if you need to
