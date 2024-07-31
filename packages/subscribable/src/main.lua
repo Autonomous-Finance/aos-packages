@@ -1,12 +1,13 @@
 local function newmodule(cfg)
-  -- for bug-prevention, force the package user to be explicit
-  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?")
+  local isInitial = Subscribable == nil
 
   -- for bug-prevention, force the package user to be explicit on initial require
-  assert(not cfg.initial or cfg.useDB ~= nil,
+  assert(not isInitial or cfg.useDB ~= nil,
     "cfg.useDb is required: are you using the sqlite version (true) or the Lua-table based version (false)?")
 
-  local pkg = cfg.existing or { useDB = cfg.useDB } -- useDB can only be set on initial; afterwards it remains the same
+
+  local pkg = Subscribable or
+      { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
   pkg.version = '1.1.0'
 
@@ -37,7 +38,6 @@ local function newmodule(cfg)
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
           and Handlers.utils.hasMatchingTag("X-Action", "Pay-For-Subscription")(msg)
-          and msg.From == pkg.PAYMENT_TOKEN
     end,
     pkg.handleReceivePayment
   )

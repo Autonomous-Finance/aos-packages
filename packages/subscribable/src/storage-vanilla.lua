@@ -8,53 +8,39 @@ local function newmodule(pkg)
   --[[
     {
       processId: ID = {
-        ownerId: ID,
         topics: string[],
+        balance: string,
         whitelisted: boolean -- if true, receives data without the need to pay
       }
     }
   ]]
-  mod.Subscriptions = mod.Subscriptions or {}
-
-  --[[
-    {
-      ownerId: ID = {
-        tokenId: ID,
-        balance: string
-      }
-    }
-  ]]
-  mod.Balances = mod.Balances or {}
+  mod.Subscribers = mod.Subscribers or {}
 
   -- REGISTRATION & BALANCES
 
-  function mod.registerSubscriber(processId, ownerId, whitelisted)
-    mod.Subscriptions[processId] = mod.Subscriptions[processId] or {
-      ownerId = ownerId,
+  function mod.registerSubscriber(processId, whitelisted)
+    mod.Subscribers[processId] = mod.Subscribers[processId] or {
+      balance = "0",
+      topics = {},
       whitelisted = whitelisted,
-      topics = {}
     }
   end
 
   function mod.getSubscriber(processId)
-    return mod.Subscriptions[processId]
+    local data = mod.Subscribers[processId]
+    data.process_id = processId
   end
 
-  function mod.updateBalance(ownerId, tokenId, amount, isCredit)
-    mod.Balances[ownerId] = mod.Balances[ownerId] or {
-      tokenId = tokenId,
-      amount = '0'
-    }
-
-    local current = bint(mod.Balances[ownerId].amount)
+  function mod.updateBalance(processId, amount, isCredit)
+    local current = bint(mod.Subscribers[processId].balance)
     local diff = isCredit and bint(amount) or -bint(amount)
-    mod.Balances[ownerId].amount = tostring(current + diff)
+    mod.Subscribers[processId].balance = tostring(current + diff)
   end
 
   -- SUBSCRIPTIONS
 
   function mod.subscribeToTopics(processId, topics)
-    local existingTopics = mod.Subscriptions[processId].topics
+    local existingTopics = mod.Subscribers[processId].topics
     for _, topic in ipairs(topics) do
       if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
@@ -63,7 +49,7 @@ local function newmodule(pkg)
   end
 
   function mod.unsubscribeFromTopics(processId, topics)
-    local existingTopics = mod.Subscriptions[processId].topics
+    local existingTopics = mod.Subscribers[processId].topics
     for _, topic in ipairs(topics) do
       existingTopics = utils.filter(
         function(t)
@@ -78,8 +64,8 @@ local function newmodule(pkg)
 
   function mod.getTargetsForTopic(topic)
     local targets = {}
-    for k, v in pairs(mod.Subscriptions) do
-      local mayReceiveNotification = mod.hasBalance(v.ownerId) or v.whitelisted
+    for k, v in pairs(mod.Subscribers) do
+      local mayReceiveNotification = mod.hasEnoughBalance(v.processId) or v.whitelisted
       if mod.isSubscribedTo(k, topic) and mayReceiveNotification then
         table.insert(targets, k)
       end
@@ -89,12 +75,12 @@ local function newmodule(pkg)
 
   -- HELPERS
 
-  mod.hasBalance = function(ownerId)
-    return mod.Balances[ownerId] and bint(mod.Balances[ownerId].amount) > 0
+  mod.hasEnoughBalance = function(processId)
+    return mod.Subscribers[processId] and bint(mod.Subscribers[processId].balance) > 0
   end
 
   mod.isSubscribedTo = function(processId, topic)
-    local subscription = mod.Subscriptions[processId]
+    local subscription = mod.Subscribers[processId]
     if not subscription then return false end
 
     for _, subscribedTopic in ipairs(subscription.topics) do
@@ -103,14 +89,6 @@ local function newmodule(pkg)
       end
     end
     return false
-  end
-
-  mod.getBalanceEntry = function(ownerId, tokenId)
-    if mod.Balances[ownerId] and mod.Balances[ownerId].tokenId == tokenId then
-      return {
-        balance = mod.Balances[ownerId].amount
-      }
-    end
   end
 end
 

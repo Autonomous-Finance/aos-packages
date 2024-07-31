@@ -2,7 +2,7 @@
 
 ## Subscription provider capabilities for an AO process
 
-This package facilitates the development of AO processes that require the ability to register subscribers for events concerning specific topics, such that notifications are dispatched to the subscribers whenever the topic-related events occur.
+This package facilitates the development of AO processes that require the ability to register subscribers for events concerning specific topics. It effectively means that messages will be dispatched to subscribers whenever the topic-related events occur.
 
 The package comes in two flavours:
 
@@ -14,24 +14,54 @@ The package comes in two flavours:
 ### Handlers
 
 1. register subscriber
-2. receive payment from subscriber (spam-protection / monetization) (only AOCRED)
+2. receive payment for (spam-protection / monetization) - a specific token needs to be configured
 3. get available topics
 4. subscribe/unsubscribe a registered subscriber w/ specific topics
+5. get subscriber data
 
 ### API
 
 1. configure topics w/ corresponding checks
 2. functions to implement the above Handlers or your own variations
-3. ability to register a process as whitelisted (not gated)
+3. ability to register a process as whitelisted (gated to the process' `Owner`)
 4. notify subscribers to given topics
 5. notify subscribers to given topics with checks
-6. configure the payment token (not gated)
+6. configure the payment token (gated to the process' `Owner`)
 
-## Installation
+## APM vs integrated code
+
+You can use this package via *APM* or by copying file `example/subscribable.lua` into your project, to be required locally and be made part of your build process.
+
+Due to the current limitations of *APM*, for advanced development **we recommend taking** the _integrated code_ route.
+
+### APM
+
+Installation is required beforehand 
 
 ```lua
 APM.install('@autonomousfinance/subscribable')
 ```
+
+Require by using the package name
+
+```lua
+require "@autonomousfinance/subscribable"
+```
+
+### Integrated Code
+
+This is the approach we take in the `example` directory, where we have 2 example applications: `example.lua` and `example-db.lua`, both of which make use of the package.
+
+#### Steps:
+
+1. Copy `example.subscribable.lua` into your project. e.g. into `packages/subscribable.lua`.
+
+2. Require locally with the example path
+
+```lua
+require "packages/subscribable"
+```
+
 
 ## Usage
 
@@ -42,7 +72,7 @@ APM.install('@autonomousfinance/subscribable')
 ```lua
 -- process.lua
 
-Subscribable = require "@autonomousfinance/subscribable" ({
+Subscribable = require "@autonomousfinance/subscribable" ({ -- or require "<your-local-path>/subscribable", as explained above
   initial = true,
   useDB = false -- using the vanilla flavour
 })
@@ -120,7 +150,7 @@ You may want your lua process to be upgradable, which includes the ability to up
 
 In order to make this possible, this package gives you the option to `require` it as an upgrade.
 ```lua
-Subscribable = require "@autonomousfinance/subscribable"({
+Subscribable = require "@autonomousfinance/subscribable"({  -- or require "<your-local-path>/subscribable", as explained above
   initial = false,
   existing = Subscribable
 })
@@ -135,7 +165,7 @@ Examples of this can be found in `example/example.lua` and `example/example-db.l
 
 Similarly to extending a smart contract in Solidity, using this package allows builders to change the default functionality as needed.
 
-### 1. You can override handlers added by this package.
+### 1. You can override handlers added by this package
 
 Either replace the handler entirely
 ```lua
@@ -157,18 +187,20 @@ function(msg)
 end
 ```
 
-### 2. You can override more specific API functions of this package.
+### 2. You can override more specific API functions of this package
+
 ```lua
 local originalRegisterSubscriber = Subscribable.registerSubscriber
-Subscribable.registerSubscriber = function(processID)
+Subscribable.registerSubscriber = function(processId, whitelisted)
   -- same as before
-  originalRegisterSubscriber(processID)
+  originalRegisterSubscriber(processId, whitelisted)
   -- your ADDITIONAL logic
-  ao.send({Target = AGGREGATOR_PROCESS, Action = "Subscriber-Registered", ["Process-ID"] = processID})
+  ao.send({Target = AGGREGATOR_PROCESS, Action = "Subscriber-Registered", ["Process-ID"] = processId})
 end
 ```
 
-### 3. You can create new Handlers with available API functions of this package.
+### 3. You can create new Handlers with available API functions of this package
+
 ```lua
 Handlers.add(
   "Register-Whitelisted-Subscriber",
@@ -184,6 +216,58 @@ Handlers.add(
 
 Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` should only be used in handlers that **restrict access**. In order to give your process "Ownable" capabilities, consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
 
+
+## Subscription Model
+
+1. Subscription clients subscribe and unsubscribe themselves
+2. Subscriptions are not active by default. In the current implementation, their activation requires one of these conditions
+   1. the client is registered as **whitelisted**
+   2. there is a **subscription payment** associated with the client
+
+### Whitelisting 
+The current implementation includes a function `pkg.handleRegisterWhitelistedSubscriber()`, but it is not exposed in a handler. You can do so if you need to
+
+### Payments
+Susbcriptions can be paid for by anyone, the reference being the **process id** of the subscriber (client).
+
+The current implementation has a simple activation criteria: it only checks for the balance to be non-zero.
+
+If you need to customize this, your best place to do so would be
+- VANILLA VERSION: override `pkg.hasEnoughBalance(processId)` -> see `src/storage-vanilla.lua` for reference
+- DB VERSION: override `pgk._store.getTargetsForTopic` -> see `src/storage-db.lua` for reference
+
+See details on how to achieve this in the section [above](#2-you-can-override-more-specific-api-functions-of-this-package).
+
+### Example 
+
+If you are using this package to become a **subscription server**, here is how another process would become your **client** (subscribe to you).
+
+```lua
+-- subscriber-process.lua
+
+SUBSCRIPTION_SERVER = '...' -- your process id
+SUBCSCRIPTION_PAYMENT_TOKEN  = '...' -- whatever you, as a subscription server, set as your pkg.PAYMENT_TOKEN
+SUBSCRIPTION_PAYMENT_AMOUNT = '...' -- currently not checked by the package. there just has to be a positive balance in given token
+
+-- subscription
+ao.send({
+  Target = SUBSCRIPTION_SERVER,
+  Action = 'Register-Subscriber',
+  Topics = ['latest-price']
+})
+```
+
+And here is how anyone could **activate the subscription** by paying for it. We demonstrate how the client itself would do it
+
+```lua
+ao.send({
+  Target = SUBSCRIPTION_PAYMENT_TOKEN,
+  Action = 'Transfer',
+  Recipient = SUBSCRIPTION_SERVER,
+  Quantity = SUBSCRIPTION_PAYMENT_AMOUNT,
+  ["X-Subscriber-Process-ID"] = ao.id -- the client ID; this allows your process to associate the incoming payment with the particular subscriber ID
+})
+```
 
 ## Conflict Considerations
 

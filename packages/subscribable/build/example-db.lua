@@ -9,6 +9,7 @@ do
 local _ENV = _ENV
 package.preload[ "pkg-api" ] = function( ... ) local arg = _G.arg;
 local json = require("json")
+local bint = require(".bint")(256)
 
 local function newmodule(pkg)
   --[[
@@ -25,43 +26,44 @@ local function newmodule(pkg)
 
   -- REGISTRATION
 
-  function pkg.registerSubscriber(processId, ownerId, whitelisted)
+  function pkg.registerSubscriber(processId, whitelisted)
     local subscriberData = pkg._storage.getSubscriber(processId)
 
     if subscriberData then
-      error('process ' ..
+      error('Process ' ..
         processId ..
-        ' already registered as a subscriber ' ..
-        ' having ownerId = ' .. subscriberData.ownerId)
+        ' is already registered as a subscriber.')
     end
 
-    pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
+    pkg._storage.registerSubscriber(processId, whitelisted)
 
     ao.send({
-      Target = ao.id,
-      Assignments = { ownerId, processId },
+      Target = processId,
       Action = 'Subscriber-Registration-Confirmation',
       Whitelisted = tostring(whitelisted),
-      Process = processId,
       OK = 'true'
     })
   end
 
   function pkg.handleRegisterSubscriber(msg)
-    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
-    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+    local processId = msg.From
 
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
-    pkg.registerSubscriber(processId, ownerId, false)
+    pkg.registerSubscriber(processId, false)
     pkg.handleSubscribeToTopics(msg)
   end
 
-  --- @dev only the main process owner should be able allowed here
   function pkg.handleRegisterWhitelistedSubscriber(msg)
+    if msg.From ~= Owner then
+      error('Only the owner is allowed to register whitelisted subscribers')
+    end
+
     local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
-    pkg.registerSubscriber(processId, ownerId, true)
+
+    if not processId then
+      error('Subscriber-Process-Id is required')
+    end
+
+    pkg.registerSubscriber(processId, true)
     pkg.handleSubscribeToTopics(msg)
   end
 
@@ -74,30 +76,60 @@ local function newmodule(pkg)
     })
   end
 
-  pkg.updateBalance = function(ownerId, tokenId, amount, isCredit)
-    local balanceEntry = pkg._storage.getBalanceEntry(ownerId, tokenId)
-    if not isCredit and not balanceEntry then
-      error('No balance entry exists for owner ' .. ownerId .. ' to be debited')
+  pkg.updateBalance = function(processId, amount, isCredit)
+    local subscriber = pkg._storage.getSubscriber(processId)
+    if not isCredit and not subscriber then
+      error('Subscriber ' .. processId .. ' is not registered. Register first, then make a payment')
     end
 
-    if not isCredit and balanceEntry.balance < amount then
-      error('Insufficient balance for owner ' .. ownerId .. ' to be debited')
+    if not isCredit and bint(subscriber.balance) < bint(amount) then
+      error('Insufficient balance for subscriber ' .. processId .. ' to be debited')
     end
 
-    pkg._storage.updateBalance(ownerId, tokenId, amount, isCredit)
+    pkg._storage.updateBalance(processId, amount, isCredit)
   end
 
   function pkg.handleReceivePayment(msg)
-    pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
+    local processId = msg.Tags["X-Subscriber-Process-Id"]
+
+    local error
+    if not processId then
+      error = "No subscriber specified"
+    end
+
+    if msg.From ~= pkg.PAYMENT_TOKEN then
+      error = "Wrong token. Payment token is " .. (pkg.PAYMENT_TOKEN or "?")
+    end
+
+    if error then
+      ao.send({
+        Target = msg.From,
+        Action = 'Transfer',
+        Recipient = msg.Sender,
+        Quantity = msg.Quantity,
+        ["X-Action"] = "Subscription-Payment-Refund",
+        ["X-Details"] = error
+      })
+
+      ao.send({
+        Target = msg.Sender,
+        ["Response-For"] = "Pay-For-Subscription",
+        OK = "false",
+        Data = error
+      })
+    end
+
+    pkg.updateBalance(msg.Tags.Sender, msg.Tags.Quantity, true)
+
     ao.send({
-      Target = msg.From,
+      Target = msg.Sender,
       ["Response-For"] = "Pay-For-Subscription",
       OK = "true"
     })
-    print('Received subscription payment from ' .. msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' '.. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
+    print('Received subscription payment from ' ..
+      msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' ' .. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
   end
 
-  --- @dev only the main process owner should be able allowed here
   function pkg.handleSetPaymentToken(msg)
     pkg.PAYMENT_TOKEN = msg.Tags.Token
   end
@@ -132,52 +164,52 @@ local function newmodule(pkg)
 
   -- SUBSCRIPTIONS
 
-  function pkg.subscribeToTopics(processId, ownerId, topics)
-    pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
+  function pkg.subscribeToTopics(processId, topics)
+    pkg.onlyRegisteredSubscriber(processId)
 
     pkg._storage.subscribeToTopics(processId, topics)
 
+    local subscriber = pkg._storage.getSubscriber(processId)
+
     ao.send({
-      Target = ao.id,
-      Assignments = { ownerId, processId },
-      Action = 'Subscribe-To-Topics',
-      Process = processId,
-      Topics = json.encode(topics)
+      Target = processId,
+      ['Response-For'] = 'Subscribe-To-Topics',
+      OK = "true",
+      ["Updated-Topics"] = subscriber.topics
     })
   end
 
   function pkg.handleSubscribeToTopics(msg)
-    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
-    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
     assert(msg.Tags['Topics'], 'Topics is required')
 
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
+    local processId = msg.From
     local topics = json.decode(msg.Tags['Topics'])
 
-    pkg.subscribeToTopics(processId, ownerId, topics)
+    pkg.subscribeToTopics(processId, topics)
   end
 
-  function pkg.unsubscribeFromTopics(processId, ownerId, topics)
-    pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
+  function pkg.unsubscribeFromTopics(processId, topics)
+    pkg.onlyRegisteredSubscriber(processId)
 
     pkg._storage.unsubscribeFromTopics(processId, topics)
 
+    local subscriber = pkg._storage.getSubscriber(processId)
+
     ao.send({
-      Target = ao.id,
-      Assignments = { processId },
-      Action = 'Unsubscribe-From-Topics',
-      Process = processId,
-      Topics = json.encode(topics)
+      Target = processId,
+      ["Response-For"] = 'Unsubscribe-From-Topics',
+      OK = "true",
+      ["Updated-Topics"] = subscriber.topics
     })
   end
 
   function pkg.handleUnsubscribeFromTopics(msg)
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
+    assert(msg.Tags['Topics'], 'Topics is required')
+
+    local processId = msg.From
     local topics = msg.Tags['Topics']
 
-    pkg.unsubscribeFromTopics(processId, ownerId, topics)
+    pkg.unsubscribeFromTopics(processId, topics)
   end
 
   -- NOTIFICATIONS
@@ -185,7 +217,7 @@ local function newmodule(pkg)
   -- core dispatch functionality
 
   function pkg.notifySubscribers(topic, payload)
-    local targets = pkg._storage.getTargetsForTopic(topic)
+    local targets = pkg._storage.activationCondition()
 
     if #targets > 0 then
       ao.send({
@@ -232,14 +264,10 @@ local function newmodule(pkg)
 
   -- HELPERS
 
-  pkg.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
+  pkg.onlyRegisteredSubscriber = function(processId)
     local subscriberData = pkg._storage.getSubscriber(processId)
     if not subscriberData then
       error('process ' .. processId .. ' is not registered as a subscriber')
-    end
-
-    if subscriberData.ownerId ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end
@@ -252,6 +280,7 @@ do
 local _ENV = _ENV
 package.preload[ "storage-db" ] = function( ... ) local arg = _G.arg;
 local sqlite3 = require("lsqlite3")
+local bint = require(".bint")(256)
 
 local function newmodule(pkg)
   local mod = {}
@@ -261,28 +290,17 @@ local function newmodule(pkg)
 
   DB = DB or sqlite3.open_memory()
 
-  sql.create_balances_table = [[
-    CREATE TABLE IF NOT EXISTS balances (
-        owner_id TEXT PRIMARY KEY,
-        token_id TEXT NOT NULL,
-        balance INT NOT NULL
-    );
-  ]]
-
-  sql.create_subscriptions_table = [[
-    CREATE TABLE IF NOT EXISTS subscriptions (
+  sql.create_subscribers_table = [[
+    CREATE TABLE IF NOT EXISTS subscribers (
         process_id TEXT PRIMARY KEY,
-        owner_id TEXT NOT NULL,
+        topics TEXT,  -- treated as JSON (an array of strings)
+        balance TEXT,
         whitelisted INTEGER NOT NULL, -- 0 or 1 (false or true)
-        topics TEXT  -- treated as JSON (an array of strings)
     );
   ]]
 
   local function createTableIfNotExists()
-    DB:exec(sql.create_balances_table)
-    print("Err: " .. DB:errmsg())
-
-    DB:exec(sql.create_subscriptions_table)
+    DB:exec(sql.create_subscribers_table)
     print("Err: " .. DB:errmsg())
   end
 
@@ -291,17 +309,17 @@ local function newmodule(pkg)
   -- REGISTRATION & BALANCES
 
   ---@param whitelisted boolean
-  function mod.registerSubscriber(processId, ownerId, whitelisted)
+  function mod.registerSubscriber(processId, whitelisted)
     local stmt = DB:prepare [[
-    INSERT INTO subscriptions (process_id, owner_id, whitelisted)
-    VALUES (:process_id, :owner_id, :whitelisted)
+    INSERT INTO subscribers (process_id, balance, whitelisted)
+    VALUES (:process_id, :balance, :whitelisted)
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for registering process: " .. DB:errmsg())
     end
     stmt:bind_names({
       process_id = processId,
-      owner_id = ownerId,
+      balance = "0",
       whitelisted = whitelisted and 1 or 0
     })
     local _, err = stmt:step()
@@ -313,7 +331,7 @@ local function newmodule(pkg)
 
   function mod.getSubscriber(processId)
     local stmt = DB:prepare [[
-    SELECT * FROM subscriptions WHERE process_id = :process_id
+    SELECT * FROM subscribers WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for checking subscriber: " .. DB:errmsg())
@@ -322,25 +340,22 @@ local function newmodule(pkg)
     return sql.queryOne(stmt)
   end
 
-  function sql.updateBalance(ownerId, tokenId, amount, isCredit)
+  function sql.updateBalance(processId, amount, isCredit)
+    local currentBalance = sql.getBalance(processId)
+    local diff = isCredit and bint(amount) or -bint(amount)
+    local newBalance = tostring(currentBalance + diff)
+
     local stmt = DB:prepare [[
-    INSERT INTO balances (owner, token_id, balance)
-    VALUES (:owner_id, :token_id, :amount)
-    ON CONFLICT(owner) DO UPDATE SET
-      balance = CASE
-        WHEN :is_credit THEN balances.balance + :amount
-        ELSE balances.balance - :amount
-      END
-    WHERE balances.token_id = :token_id;
+    UPDATE subscribers
+    SET balance = :new_balance
+    WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for updating balance: " .. DB:errmsg())
     end
     stmt:bind_names({
-      owner_id = ownerId,
-      token_id = tokenId,
-      amount = math.abs(amount), -- Ensure amount is positive
-      is_credit = isCredit
+      process_id = processId,
+      new_balance = newBalance,
     })
     local result, err = stmt:step()
     stmt:finalize()
@@ -349,14 +364,14 @@ local function newmodule(pkg)
     end
   end
 
-  function sql.getBalanceEntry(ownerId, tokenId)
+  function sql.getBalance(processId)
     local stmt = DB:prepare [[
-    SELECT * FROM balances WHERE owner_id = :owner_id AND token_id = :token_id
+    SELECT * FROM subscribers WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for getting balance entry: " .. DB:errmsg())
     end
-    stmt:bind_names({ owner_id = ownerId, token_id = tokenId })
+    stmt:bind_names({ process_id = processId })
     return sql.queryOne(stmt)
   end
 
@@ -365,12 +380,12 @@ local function newmodule(pkg)
   function sql.subscribeToTopics(processId, topics)
     -- add the topics to the existing topics while avoiding duplicates
     local stmt = DB:prepare [[
-    UPDATE subscriptions
+    UPDATE subscribers
     SET topics = (
         SELECT json_group_array(topic)
         FROM (
             SELECT json_each.value as topic
-            FROM subscriptions, json_each(subscriptions.topics)
+            FROM subscribers, json_each(subscribers.topics)
             WHERE process_id = :process_id
 
             UNION
@@ -398,12 +413,12 @@ local function newmodule(pkg)
   function sql.unsubscribeFromTopics(processId, topics)
     -- remove the topics from the existing topics
     local stmt = DB:prepare [[
-    UPDATE subscriptions
+    UPDATE subscribers
     SET topics = (
         SELECT json_group_array(topic)
         FROM (
             SELECT json_each.value as topic
-            FROM subscriptions, json_each(subscriptions.topics)
+            FROM subscribers, json_each(subscribers.topics)
             WHERE process_id = :process_id
 
             EXCEPT
@@ -430,16 +445,19 @@ local function newmodule(pkg)
 
   -- NOTIFICATIONS
 
+  function sql.activationCondition()
+    return [[
+    (subs.whitelisted = 1 OR subs.balance <> "0")
+  ]]
+  end
+
   function sql.getTargetsForTopic(topic)
+    local activationCondition = sql.activationCondition()
     local stmt = DB:prepare [[
     SELECT process_id
-    FROM subscriptions as subs
-    WHERE json_contains(topics, :topic) AND (subs.whitelisted = 1 OR EXISTS (
-      SELECT 1
-      FROM balances as b
-      WHERE b.owner_id = subs.owner_id AND b.balance > 0
-    ))
-  ]]
+    FROM subscribers as subs
+    WHERE json_contains(topics, :topic) AND ]] .. activationCondition
+
     if not stmt then
       error("Failed to prepare SQL statement for getting notifiable subscribers: " .. DB:errmsg())
     end
@@ -490,53 +508,39 @@ local function newmodule(pkg)
   --[[
     {
       processId: ID = {
-        ownerId: ID,
         topics: string[],
+        balance: string,
         whitelisted: boolean -- if true, receives data without the need to pay
       }
     }
   ]]
-  mod.Subscriptions = mod.Subscriptions or {}
-
-  --[[
-    {
-      ownerId: ID = {
-        tokenId: ID,
-        balance: string
-      }
-    }
-  ]]
-  mod.Balances = mod.Balances or {}
+  mod.Subscribers = mod.Subscribers or {}
 
   -- REGISTRATION & BALANCES
 
-  function mod.registerSubscriber(processId, ownerId, whitelisted)
-    mod.Subscriptions[processId] = mod.Subscriptions[processId] or {
-      ownerId = ownerId,
+  function mod.registerSubscriber(processId, whitelisted)
+    mod.Subscribers[processId] = mod.Subscribers[processId] or {
+      balance = "0",
+      topics = {},
       whitelisted = whitelisted,
-      topics = {}
     }
   end
 
   function mod.getSubscriber(processId)
-    return mod.Subscriptions[processId]
+    local data = mod.Subscribers[processId]
+    data.process_id = processId
   end
 
-  function mod.updateBalance(ownerId, tokenId, amount, isCredit)
-    mod.Balances[ownerId] = mod.Balances[ownerId] or {
-      tokenId = tokenId,
-      amount = '0'
-    }
-
-    local current = bint(mod.Balances[ownerId].amount)
+  function mod.updateBalance(processId, amount, isCredit)
+    local current = bint(mod.Subscribers[processId].balance)
     local diff = isCredit and bint(amount) or -bint(amount)
-    mod.Balances[ownerId].amount = tostring(current + diff)
+    mod.Subscribers[processId].balance = tostring(current + diff)
   end
 
   -- SUBSCRIPTIONS
 
   function mod.subscribeToTopics(processId, topics)
-    local existingTopics = mod.Subscriptions[processId].topics
+    local existingTopics = mod.Subscribers[processId].topics
     for _, topic in ipairs(topics) do
       if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
@@ -545,7 +549,7 @@ local function newmodule(pkg)
   end
 
   function mod.unsubscribeFromTopics(processId, topics)
-    local existingTopics = mod.Subscriptions[processId].topics
+    local existingTopics = mod.Subscribers[processId].topics
     for _, topic in ipairs(topics) do
       existingTopics = utils.filter(
         function(t)
@@ -560,8 +564,8 @@ local function newmodule(pkg)
 
   function mod.getTargetsForTopic(topic)
     local targets = {}
-    for k, v in pairs(mod.Subscriptions) do
-      local mayReceiveNotification = mod.hasBalance(v.ownerId) or v.whitelisted
+    for k, v in pairs(mod.Subscribers) do
+      local mayReceiveNotification = mod.hasEnoughBalance(v.processId) or v.whitelisted
       if mod.isSubscribedTo(k, topic) and mayReceiveNotification then
         table.insert(targets, k)
       end
@@ -571,12 +575,12 @@ local function newmodule(pkg)
 
   -- HELPERS
 
-  mod.hasBalance = function(ownerId)
-    return mod.Balances[ownerId] and bint(mod.Balances[ownerId].amount) > 0
+  mod.hasEnoughBalance = function(processId)
+    return mod.Subscribers[processId] and bint(mod.Subscribers[processId].balance) > 0
   end
 
   mod.isSubscribedTo = function(processId, topic)
-    local subscription = mod.Subscriptions[processId]
+    local subscription = mod.Subscribers[processId]
     if not subscription then return false end
 
     for _, subscribedTopic in ipairs(subscription.topics) do
@@ -586,14 +590,6 @@ local function newmodule(pkg)
     end
     return false
   end
-
-  mod.getBalanceEntry = function(ownerId, tokenId)
-    if mod.Balances[ownerId] and mod.Balances[ownerId].tokenId == tokenId then
-      return {
-        balance = mod.Balances[ownerId].amount
-      }
-    end
-  end
 end
 
 return newmodule
@@ -601,14 +597,15 @@ end
 end
 
 local function newmodule(cfg)
-  -- for bug-prevention, force the package user to be explicit
-  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?")
+  local isInitial = Subscribable == nil
 
   -- for bug-prevention, force the package user to be explicit on initial require
-  assert(not cfg.initial or cfg.useDB ~= nil,
+  assert(not isInitial or cfg.useDB ~= nil,
     "cfg.useDb is required: are you using the sqlite version (true) or the Lua-table based version (false)?")
 
-  local pkg = cfg.existing or { useDB = cfg.useDB } -- useDB can only be set on initial; afterwards it remains the same
+
+  local pkg = Subscribable or
+      { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
   pkg.version = '1.1.0'
 
@@ -639,7 +636,6 @@ local function newmodule(cfg)
     function(msg)
       return Handlers.utils.hasMatchingTag("Action", "Credit-Notice")(msg)
           and Handlers.utils.hasMatchingTag("X-Action", "Pay-For-Subscription")(msg)
-          and msg.From == pkg.PAYMENT_TOKEN
     end,
     pkg.handleReceivePayment
   )

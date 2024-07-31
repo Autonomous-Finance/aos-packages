@@ -1,4 +1,5 @@
 local json = require("json")
+local bint = require(".bint")(256)
 
 local function newmodule(pkg)
   --[[
@@ -15,43 +16,44 @@ local function newmodule(pkg)
 
   -- REGISTRATION
 
-  function pkg.registerSubscriber(processId, ownerId, whitelisted)
+  function pkg.registerSubscriber(processId, whitelisted)
     local subscriberData = pkg._storage.getSubscriber(processId)
 
     if subscriberData then
-      error('process ' ..
+      error('Process ' ..
         processId ..
-        ' already registered as a subscriber ' ..
-        ' having ownerId = ' .. subscriberData.ownerId)
+        ' is already registered as a subscriber.')
     end
 
-    pkg._storage.registerSubscriber(processId, ownerId, whitelisted)
+    pkg._storage.registerSubscriber(processId, whitelisted)
 
     ao.send({
-      Target = ao.id,
-      Assignments = { ownerId, processId },
+      Target = processId,
       Action = 'Subscriber-Registration-Confirmation',
       Whitelisted = tostring(whitelisted),
-      Process = processId,
       OK = 'true'
     })
   end
 
   function pkg.handleRegisterSubscriber(msg)
-    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
-    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
+    local processId = msg.From
 
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
-    pkg.registerSubscriber(processId, ownerId, false)
+    pkg.registerSubscriber(processId, false)
     pkg.handleSubscribeToTopics(msg)
   end
 
-  --- @dev only the main process owner should be able allowed here
   function pkg.handleRegisterWhitelistedSubscriber(msg)
+    if msg.From ~= Owner then
+      error('Only the owner is allowed to register whitelisted subscribers')
+    end
+
     local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
-    pkg.registerSubscriber(processId, ownerId, true)
+
+    if not processId then
+      error('Subscriber-Process-Id is required')
+    end
+
+    pkg.registerSubscriber(processId, true)
     pkg.handleSubscribeToTopics(msg)
   end
 
@@ -64,30 +66,60 @@ local function newmodule(pkg)
     })
   end
 
-  pkg.updateBalance = function(ownerId, tokenId, amount, isCredit)
-    local balanceEntry = pkg._storage.getBalanceEntry(ownerId, tokenId)
-    if not isCredit and not balanceEntry then
-      error('No balance entry exists for owner ' .. ownerId .. ' to be debited')
+  pkg.updateBalance = function(processId, amount, isCredit)
+    local subscriber = pkg._storage.getSubscriber(processId)
+    if not isCredit and not subscriber then
+      error('Subscriber ' .. processId .. ' is not registered. Register first, then make a payment')
     end
 
-    if not isCredit and balanceEntry.balance < amount then
-      error('Insufficient balance for owner ' .. ownerId .. ' to be debited')
+    if not isCredit and bint(subscriber.balance) < bint(amount) then
+      error('Insufficient balance for subscriber ' .. processId .. ' to be debited')
     end
 
-    pkg._storage.updateBalance(ownerId, tokenId, amount, isCredit)
+    pkg._storage.updateBalance(processId, amount, isCredit)
   end
 
   function pkg.handleReceivePayment(msg)
-    pkg.updateBalance(msg.Tags.Sender, msg.From, msg.Tags.Quantity, true)
+    local processId = msg.Tags["X-Subscriber-Process-Id"]
+
+    local error
+    if not processId then
+      error = "No subscriber specified"
+    end
+
+    if msg.From ~= pkg.PAYMENT_TOKEN then
+      error = "Wrong token. Payment token is " .. (pkg.PAYMENT_TOKEN or "?")
+    end
+
+    if error then
+      ao.send({
+        Target = msg.From,
+        Action = 'Transfer',
+        Recipient = msg.Sender,
+        Quantity = msg.Quantity,
+        ["X-Action"] = "Subscription-Payment-Refund",
+        ["X-Details"] = error
+      })
+
+      ao.send({
+        Target = msg.Sender,
+        ["Response-For"] = "Pay-For-Subscription",
+        OK = "false",
+        Data = error
+      })
+    end
+
+    pkg.updateBalance(msg.Tags.Sender, msg.Tags.Quantity, true)
+
     ao.send({
-      Target = msg.From,
+      Target = msg.Sender,
       ["Response-For"] = "Pay-For-Subscription",
       OK = "true"
     })
-    print('Received subscription payment from ' .. msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' '.. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
+    print('Received subscription payment from ' ..
+      msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' ' .. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
   end
 
-  --- @dev only the main process owner should be able allowed here
   function pkg.handleSetPaymentToken(msg)
     pkg.PAYMENT_TOKEN = msg.Tags.Token
   end
@@ -122,52 +154,52 @@ local function newmodule(pkg)
 
   -- SUBSCRIPTIONS
 
-  function pkg.subscribeToTopics(processId, ownerId, topics)
-    pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
+  function pkg.subscribeToTopics(processId, topics)
+    pkg.onlyRegisteredSubscriber(processId)
 
     pkg._storage.subscribeToTopics(processId, topics)
 
+    local subscriber = pkg._storage.getSubscriber(processId)
+
     ao.send({
-      Target = ao.id,
-      Assignments = { ownerId, processId },
-      Action = 'Subscribe-To-Topics',
-      Process = processId,
-      Topics = json.encode(topics)
+      Target = processId,
+      ['Response-For'] = 'Subscribe-To-Topics',
+      OK = "true",
+      ["Updated-Topics"] = subscriber.topics
     })
   end
 
   function pkg.handleSubscribeToTopics(msg)
-    assert(msg.Tags['Subscriber-Process-Id'], 'Subscriber-Process-Id is required')
-    assert(msg.Tags['Owner-Id'], 'Owner-Id is required')
     assert(msg.Tags['Topics'], 'Topics is required')
 
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
+    local processId = msg.From
     local topics = json.decode(msg.Tags['Topics'])
 
-    pkg.subscribeToTopics(processId, ownerId, topics)
+    pkg.subscribeToTopics(processId, topics)
   end
 
-  function pkg.unsubscribeFromTopics(processId, ownerId, topics)
-    pkg.onlyOwnedRegisteredSubscriber(processId, ownerId)
+  function pkg.unsubscribeFromTopics(processId, topics)
+    pkg.onlyRegisteredSubscriber(processId)
 
     pkg._storage.unsubscribeFromTopics(processId, topics)
 
+    local subscriber = pkg._storage.getSubscriber(processId)
+
     ao.send({
-      Target = ao.id,
-      Assignments = { processId },
-      Action = 'Unsubscribe-From-Topics',
-      Process = processId,
-      Topics = json.encode(topics)
+      Target = processId,
+      ["Response-For"] = 'Unsubscribe-From-Topics',
+      OK = "true",
+      ["Updated-Topics"] = subscriber.topics
     })
   end
 
   function pkg.handleUnsubscribeFromTopics(msg)
-    local processId = msg.Tags['Subscriber-Process-Id']
-    local ownerId = msg.Tags['Owner-Id']
+    assert(msg.Tags['Topics'], 'Topics is required')
+
+    local processId = msg.From
     local topics = msg.Tags['Topics']
 
-    pkg.unsubscribeFromTopics(processId, ownerId, topics)
+    pkg.unsubscribeFromTopics(processId, topics)
   end
 
   -- NOTIFICATIONS
@@ -175,7 +207,7 @@ local function newmodule(pkg)
   -- core dispatch functionality
 
   function pkg.notifySubscribers(topic, payload)
-    local targets = pkg._storage.getTargetsForTopic(topic)
+    local targets = pkg._storage.activationCondition()
 
     if #targets > 0 then
       ao.send({
@@ -222,14 +254,10 @@ local function newmodule(pkg)
 
   -- HELPERS
 
-  pkg.onlyOwnedRegisteredSubscriber = function(processId, ownerId)
+  pkg.onlyRegisteredSubscriber = function(processId)
     local subscriberData = pkg._storage.getSubscriber(processId)
     if not subscriberData then
       error('process ' .. processId .. ' is not registered as a subscriber')
-    end
-
-    if subscriberData.ownerId ~= ownerId then
-      error('process ' .. processId .. ' is not registered as a subscriber with ownerId ' .. ownerId)
     end
   end
 end

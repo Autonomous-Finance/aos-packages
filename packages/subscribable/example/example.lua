@@ -20,22 +20,10 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
-if not Subscribable then
-  -- INITIAL DEPLOYMENT of example-process.lua
 
-  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = true,
-    useDB = false
-  })
-else
-  -- UPGRADE of example-process.lua
-
-  -- We reuse all existing package state
-  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = false,
-    existing = Subscribable
-  })
-end
+Subscribable = require 'subscribable' ({
+  useDB = false
+})
 
 Handlers.add(
   'Increment',

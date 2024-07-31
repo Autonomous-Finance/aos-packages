@@ -1,4 +1,5 @@
 local sqlite3 = require("lsqlite3")
+local bint = require(".bint")(256)
 
 local function newmodule(pkg)
   local mod = {}
@@ -8,28 +9,17 @@ local function newmodule(pkg)
 
   DB = DB or sqlite3.open_memory()
 
-  sql.create_balances_table = [[
-    CREATE TABLE IF NOT EXISTS balances (
-        owner_id TEXT PRIMARY KEY,
-        token_id TEXT NOT NULL,
-        balance INT NOT NULL
-    );
-  ]]
-
-  sql.create_subscriptions_table = [[
-    CREATE TABLE IF NOT EXISTS subscriptions (
+  sql.create_subscribers_table = [[
+    CREATE TABLE IF NOT EXISTS subscribers (
         process_id TEXT PRIMARY KEY,
-        owner_id TEXT NOT NULL,
+        topics TEXT,  -- treated as JSON (an array of strings)
+        balance TEXT,
         whitelisted INTEGER NOT NULL, -- 0 or 1 (false or true)
-        topics TEXT  -- treated as JSON (an array of strings)
     );
   ]]
 
   local function createTableIfNotExists()
-    DB:exec(sql.create_balances_table)
-    print("Err: " .. DB:errmsg())
-
-    DB:exec(sql.create_subscriptions_table)
+    DB:exec(sql.create_subscribers_table)
     print("Err: " .. DB:errmsg())
   end
 
@@ -38,17 +28,17 @@ local function newmodule(pkg)
   -- REGISTRATION & BALANCES
 
   ---@param whitelisted boolean
-  function mod.registerSubscriber(processId, ownerId, whitelisted)
+  function mod.registerSubscriber(processId, whitelisted)
     local stmt = DB:prepare [[
-    INSERT INTO subscriptions (process_id, owner_id, whitelisted)
-    VALUES (:process_id, :owner_id, :whitelisted)
+    INSERT INTO subscribers (process_id, balance, whitelisted)
+    VALUES (:process_id, :balance, :whitelisted)
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for registering process: " .. DB:errmsg())
     end
     stmt:bind_names({
       process_id = processId,
-      owner_id = ownerId,
+      balance = "0",
       whitelisted = whitelisted and 1 or 0
     })
     local _, err = stmt:step()
@@ -60,7 +50,7 @@ local function newmodule(pkg)
 
   function mod.getSubscriber(processId)
     local stmt = DB:prepare [[
-    SELECT * FROM subscriptions WHERE process_id = :process_id
+    SELECT * FROM subscribers WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for checking subscriber: " .. DB:errmsg())
@@ -69,25 +59,22 @@ local function newmodule(pkg)
     return sql.queryOne(stmt)
   end
 
-  function sql.updateBalance(ownerId, tokenId, amount, isCredit)
+  function sql.updateBalance(processId, amount, isCredit)
+    local currentBalance = sql.getBalance(processId)
+    local diff = isCredit and bint(amount) or -bint(amount)
+    local newBalance = tostring(currentBalance + diff)
+
     local stmt = DB:prepare [[
-    INSERT INTO balances (owner, token_id, balance)
-    VALUES (:owner_id, :token_id, :amount)
-    ON CONFLICT(owner) DO UPDATE SET
-      balance = CASE
-        WHEN :is_credit THEN balances.balance + :amount
-        ELSE balances.balance - :amount
-      END
-    WHERE balances.token_id = :token_id;
+    UPDATE subscribers
+    SET balance = :new_balance
+    WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for updating balance: " .. DB:errmsg())
     end
     stmt:bind_names({
-      owner_id = ownerId,
-      token_id = tokenId,
-      amount = math.abs(amount), -- Ensure amount is positive
-      is_credit = isCredit
+      process_id = processId,
+      new_balance = newBalance,
     })
     local result, err = stmt:step()
     stmt:finalize()
@@ -96,14 +83,14 @@ local function newmodule(pkg)
     end
   end
 
-  function sql.getBalanceEntry(ownerId, tokenId)
+  function sql.getBalance(processId)
     local stmt = DB:prepare [[
-    SELECT * FROM balances WHERE owner_id = :owner_id AND token_id = :token_id
+    SELECT * FROM subscribers WHERE process_id = :process_id
   ]]
     if not stmt then
       error("Failed to prepare SQL statement for getting balance entry: " .. DB:errmsg())
     end
-    stmt:bind_names({ owner_id = ownerId, token_id = tokenId })
+    stmt:bind_names({ process_id = processId })
     return sql.queryOne(stmt)
   end
 
@@ -112,12 +99,12 @@ local function newmodule(pkg)
   function sql.subscribeToTopics(processId, topics)
     -- add the topics to the existing topics while avoiding duplicates
     local stmt = DB:prepare [[
-    UPDATE subscriptions
+    UPDATE subscribers
     SET topics = (
         SELECT json_group_array(topic)
         FROM (
             SELECT json_each.value as topic
-            FROM subscriptions, json_each(subscriptions.topics)
+            FROM subscribers, json_each(subscribers.topics)
             WHERE process_id = :process_id
 
             UNION
@@ -145,12 +132,12 @@ local function newmodule(pkg)
   function sql.unsubscribeFromTopics(processId, topics)
     -- remove the topics from the existing topics
     local stmt = DB:prepare [[
-    UPDATE subscriptions
+    UPDATE subscribers
     SET topics = (
         SELECT json_group_array(topic)
         FROM (
             SELECT json_each.value as topic
-            FROM subscriptions, json_each(subscriptions.topics)
+            FROM subscribers, json_each(subscribers.topics)
             WHERE process_id = :process_id
 
             EXCEPT
@@ -177,16 +164,19 @@ local function newmodule(pkg)
 
   -- NOTIFICATIONS
 
+  function sql.activationCondition()
+    return [[
+    (subs.whitelisted = 1 OR subs.balance <> "0")
+  ]]
+  end
+
   function sql.getTargetsForTopic(topic)
+    local activationCondition = sql.activationCondition()
     local stmt = DB:prepare [[
     SELECT process_id
-    FROM subscriptions as subs
-    WHERE json_contains(topics, :topic) AND (subs.whitelisted = 1 OR EXISTS (
-      SELECT 1
-      FROM balances as b
-      WHERE b.owner_id = subs.owner_id AND b.balance > 0
-    ))
-  ]]
+    FROM subscribers as subs
+    WHERE json_contains(topics, :topic) AND ]] .. activationCondition
+
     if not stmt then
       error("Failed to prepare SQL statement for getting notifiable subscribers: " .. DB:errmsg())
     end
