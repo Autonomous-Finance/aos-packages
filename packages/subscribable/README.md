@@ -265,7 +265,7 @@ ao.send({
   Action = 'Transfer',
   Recipient = SUBSCRIPTION_SERVER,
   Quantity = SUBSCRIPTION_PAYMENT_AMOUNT,
-  ["X-Subscriber-Process-ID"] = ao.id -- the client ID; this allows your process to associate the incoming payment with the particular subscriber ID
+  ["X-Subscriber-Process-Id"] = ao.id -- the client process ID; this allows your process to associate the incoming payment with the particular subscriber ID
 })
 ```
 
