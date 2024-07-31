@@ -214,7 +214,7 @@ Handlers.add(
 
 ### Consider Access Control
 
-Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` should only be used in handlers that **restrict access**. In order to give your process "Ownable" capabilities, consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
+Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` are gated - they **restrict access** to the current `Owner` of the process. In order to give your process "Ownable" capabilities (managing ownership), consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
 
 
 ## Subscription Model
@@ -225,7 +225,7 @@ Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSu
    2. there is a **subscription payment** associated with the client
 
 ### Whitelisting 
-The current implementation includes a function `pkg.handleRegisterWhitelistedSubscriber()`, but it is not exposed in a handler. You can do so if you need to
+The current implementation includes a function `pkg.handleRegisterWhitelistedSubscriber(msg)`, but it is not exposed in a handler. You can do so if you need to
 
 ### Payments
 Susbcriptions can be paid for by anyone, the reference being the **process id** of the subscriber (client).
@@ -234,9 +234,9 @@ The current implementation has a simple activation criteria: it only checks for 
 
 If you need to customize this, your best place to do so would be
 - VANILLA VERSION: override `pkg.hasEnoughBalance(processId)` -> see `src/storage-vanilla.lua` for reference
-- DB VERSION: override `pgk._store.getTargetsForTopic` -> see `src/storage-db.lua` for reference
+- DB VERSION: override `pgk._store.getTargetsForTopic(topic)` -> see `src/storage-db.lua` for reference
 
-See details on how to achieve this in the section [above](#2-you-can-override-more-specific-api-functions-of-this-package).
+You can find an example how to override an API function in a section [above](#2-you-can-override-more-specific-api-functions-of-this-package).
 
 ### Example 
 
