@@ -207,7 +207,7 @@ local function newmodule(pkg)
   -- core dispatch functionality
 
   function pkg.notifySubscribers(topic, payload)
-    local targets = pkg._storage.activationCondition()
+    local targets = pkg._storage.getTargetsForTopic(topic)
 
     if #targets > 0 then
       ao.send({

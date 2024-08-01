@@ -165,14 +165,14 @@ local function newmodule(pkg)
 
   -- NOTIFICATIONS
 
-  function sql.activationCondition()
+  function mod.activationCondition()
     return [[
     (subs.whitelisted = 1 OR subs.balance <> "0")
   ]]
   end
 
   function sql.getTargetsForTopic(topic)
-    local activationCondition = sql.activationCondition()
+    local activationCondition = mod.activationCondition()
     local stmt = DB:prepare [[
     SELECT process_id
     FROM subscribers as subs
