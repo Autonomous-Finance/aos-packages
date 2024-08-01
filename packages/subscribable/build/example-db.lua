@@ -372,7 +372,8 @@ local function newmodule(pkg)
       error("Failed to prepare SQL statement for getting balance entry: " .. DB:errmsg())
     end
     stmt:bind_names({ process_id = processId })
-    return sql.queryOne(stmt).balance
+    local row = sql.queryOne(stmt)
+    return row and row.balance or "0"
   end
 
   -- SUBSCRIPTION
