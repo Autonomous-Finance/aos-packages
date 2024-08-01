@@ -253,7 +253,7 @@ SUBSCRIPTION_PAYMENT_AMOUNT = '...' -- currently not checked by the package. the
 ao.send({
   Target = SUBSCRIPTION_SERVER,
   Action = 'Register-Subscriber',
-  Topics = ['latest-price']
+  Topics = json.encode(['latest-price'])
 })
 ```
 
