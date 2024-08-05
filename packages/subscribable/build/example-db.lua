@@ -49,7 +49,7 @@ local function newmodule(pkg)
     local processId = msg.From
 
     pkg.registerSubscriber(processId, false)
-    pkg.handleSubscribeToTopics(msg)
+    pkg._subscribeToTopics(msg, processId)
   end
 
   function pkg.handleRegisterWhitelistedSubscriber(msg)
@@ -64,7 +64,7 @@ local function newmodule(pkg)
     end
 
     pkg.registerSubscriber(processId, true)
-    pkg.handleSubscribeToTopics(msg)
+    pkg._subscribeToTopics(msg, processId)
   end
 
   function pkg.handleGetSubscriber(msg)
@@ -164,7 +164,11 @@ local function newmodule(pkg)
 
   -- SUBSCRIPTIONS
 
-  function pkg.subscribeToTopics(processId, topics)
+  function pkg._subscribeToTopics(msg, processId)
+    assert(msg.Tags['Topics'], 'Topics is required')
+
+    local topics = json.decode(msg.Tags['Topics'])
+
     pkg.onlyRegisteredSubscriber(processId)
 
     pkg._storage.subscribeToTopics(processId, topics)
@@ -179,13 +183,10 @@ local function newmodule(pkg)
     })
   end
 
+  -- same for regular and whitelisted subscriptions - the subscriber must call it
   function pkg.handleSubscribeToTopics(msg)
-    assert(msg.Tags['Topics'], 'Topics is required')
-
     local processId = msg.From
-    local topics = json.decode(msg.Tags['Topics'])
-
-    pkg.subscribeToTopics(processId, topics)
+    pkg._subscribeToTopics(msg, processId)
   end
 
   function pkg.unsubscribeFromTopics(processId, topics)

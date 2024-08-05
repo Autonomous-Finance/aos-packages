@@ -206,8 +206,7 @@ Handlers.add(
   "Register-Whitelisted-Subscriber",
   Handlers.utils.hasMatchingTag("Action", "Register-Whitelisted-Subscriber"),
   function(msg)
-    Ownable.onlyOwner(msg) -- restrict access using the "@autonomousfinance/ownable" package
-    Subscribable.handleRegisterWhitelistedSubscriber(msg) -- already exists in this package
+    Subscribable.handleRegisterWhitelistedSubscriber(msg) 
   end
 )
 ```
