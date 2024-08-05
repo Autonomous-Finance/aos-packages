@@ -28,7 +28,7 @@ local function newmodule(pkg)
 
   function mod.getSubscriber(processId)
     local data = mod.Subscribers[processId]
-    data.process_id = processId
+    return data and data.process_id or nil
   end
 
   function mod.updateBalance(processId, amount, isCredit)
