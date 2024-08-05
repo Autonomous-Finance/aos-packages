@@ -526,7 +526,7 @@ local function newmodule(pkg)
 
   function mod.getSubscriber(processId)
     local data = mod.Subscribers[processId]
-    return data and data.process_id or nil
+    return data
   end
 
   function mod.updateBalance(processId, amount, isCredit)
@@ -605,7 +605,7 @@ local function newmodule(cfg)
   local pkg = Subscribable or
       { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
-  pkg.version = '1.2.1'
+  pkg.version = '1.2.2'
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 
