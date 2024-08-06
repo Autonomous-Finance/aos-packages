@@ -623,7 +623,7 @@ local function newmodule(cfg)
   local pkg = Subscribable or
       { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
-  pkg.version = '1.2.2'
+  pkg.version = '1.3.0'
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 
