@@ -218,7 +218,6 @@ local function newmodule(pkg)
 
   function pkg.notifySubscribers(topic, payload)
     local targets = pkg._storage.getTargetsForTopic(topic)
-
     if #targets > 0 then
       ao.send({
         ['Target'] = ao.id,
@@ -535,7 +534,7 @@ local function newmodule(pkg)
   end
 
   function mod.getSubscriber(processId)
-    local data = mod.Subscribers[processId]
+    local data = json.decode(json.encode(mod.Subscribers[processId]))
     if data then
       data.whitelisted = data.whitelisted == 1
       data.topics = json.decode(data.topics)
@@ -553,6 +552,7 @@ local function newmodule(pkg)
 
   function mod.subscribeToTopics(processId, topics)
     local existingTopics = json.decode(mod.Subscribers[processId].topics)
+
     for _, topic in ipairs(topics) do
       if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
@@ -739,7 +739,7 @@ Handlers.add(
   function(msg)
     Greeting = 'GM-' .. tostring(math.random(1000, 9999))
     -- We know for sure that notifications should be sent --> this helps to avoid performing redundant computation
-    Subscribable.notifyTopic('gm-greeting', msg.Timestamp)
+    Subscribable.notifyTopic('gm-greeting', { greeting = Greeting }, msg.Timestamp)
   end
 )
 
@@ -761,8 +761,8 @@ Handlers.add(
   'Whitelist-Subscriber',
   Handlers.utils.hasMatchingTag('Action', 'Whitelist-Subscriber'),
   function(msg)
-    assert(msg.From == Owner, 'Only the owner can whitelist a subscriber')
-    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = true
+    assert(msg.From == Owner or msg.From == ao.id, 'Only the owner can whitelist a subscriber')
+    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = 1
   end
 )
 

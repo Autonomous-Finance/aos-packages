@@ -64,7 +64,7 @@ Handlers.add(
   function(msg)
     Greeting = 'GM-' .. tostring(math.random(1000, 9999))
     -- We know for sure that notifications should be sent --> this helps to avoid performing redundant computation
-    Subscribable.notifyTopic('gm-greeting', msg.Timestamp)
+    Subscribable.notifyTopic('gm-greeting', { greeting = Greeting }, msg.Timestamp)
   end
 )
 
@@ -86,8 +86,8 @@ Handlers.add(
   'Whitelist-Subscriber',
   Handlers.utils.hasMatchingTag('Action', 'Whitelist-Subscriber'),
   function(msg)
-    assert(msg.From == Owner, 'Only the owner can whitelist a subscriber')
-    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = true
+    assert(msg.From == Owner or msg.From == ao.id, 'Only the owner can whitelist a subscriber')
+    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = 1
   end
 )
 

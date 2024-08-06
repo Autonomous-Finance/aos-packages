@@ -215,7 +215,6 @@ local function newmodule(pkg)
 
   function pkg.notifySubscribers(topic, payload)
     local targets = pkg._storage.getTargetsForTopic(topic)
-
     if #targets > 0 then
       ao.send({
         ['Target'] = ao.id,
@@ -532,7 +531,7 @@ local function newmodule(pkg)
   end
 
   function mod.getSubscriber(processId)
-    local data = mod.Subscribers[processId]
+    local data = json.decode(json.encode(mod.Subscribers[processId]))
     if data then
       data.whitelisted = data.whitelisted == 1
       data.topics = json.decode(data.topics)
@@ -550,6 +549,7 @@ local function newmodule(pkg)
 
   function mod.subscribeToTopics(processId, topics)
     local existingTopics = json.decode(mod.Subscribers[processId].topics)
+
     for _, topic in ipairs(topics) do
       if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
