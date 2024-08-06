@@ -511,7 +511,6 @@ local utils = require ".utils"
 
 local function newmodule(pkg)
   local mod = {}
-  pkg._storage = mod
 
   --[[
     {
@@ -522,6 +521,11 @@ local function newmodule(pkg)
       }
     }
   ]]
+  mod.Subscribers = pkg._storage.Subscribers or {} -- we preserve state from previously used package
+
+  pkg._storage = mod
+
+
   mod.Subscribers = mod.Subscribers or {}
 
   -- REGISTRATION & BALANCES
