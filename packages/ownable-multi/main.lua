@@ -99,7 +99,7 @@ local function newmodule(cfg)
 
   -- API
 
-  pkg.getInfo = function ()
+  pkg.getInfo = function()
     return {
       Owner = Owner
     }
@@ -111,6 +111,13 @@ local function newmodule(cfg)
     else
       assert(pkg.Owners[msg.From], "Only an owner is allowed")
     end
+  end
+
+  -- useful for interactions via AOS
+  pkg.onlyOwnerOrSelf = function(msg)
+    if msg.From == ao.id then return end
+
+    pkg.onlyOwner(msg)
   end
 
   pkg.addOwner = function(newOwner)

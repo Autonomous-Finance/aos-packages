@@ -33,7 +33,7 @@ Handlers.add(
 
 -- API
 
-mod.getInfo = function ()
+mod.getInfo = function()
   return {
     Owner = Owner
   }
@@ -41,6 +41,11 @@ end
 
 mod.onlyOwner = function(msg)
   assert(msg.From == Owner, "Only the owner is allowed")
+end
+
+-- useful for interactions via AOS
+mod.onlyOwnerOrSelf = function(msg)
+  assert(msg.From == Owner or msg.From == ao.id, "Only the owner or self is allowed")
 end
 
 mod.transferOwnership = function(newOwner)

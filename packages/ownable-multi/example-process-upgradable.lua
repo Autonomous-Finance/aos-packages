@@ -17,6 +17,9 @@ if not Ownable then
 else
   -- UPGRADE of example-process.lua
 
+  -- reset the import in order to be able to re-import
+  package.loaded['build.main'] = nil
+
   -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
   Ownable = require "build.main" ({
     initial = false,
@@ -32,5 +35,14 @@ Handlers.add(
   function(msg)
     Ownable.onlyOwner(msg)
     Counter = Counter + 1
+  end
+)
+
+Handlers.add(
+  "reset",
+  Handlers.utils.hasMatchingTag("Action", "Reset"),
+  function(msg)
+    Ownable.onlyOwnerOrSelf(msg) -- must be sent either from the owner wallet or by opening this process in AOS
+    Counter = 0
   end
 )

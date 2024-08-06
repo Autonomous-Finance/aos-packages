@@ -21,3 +21,12 @@ Handlers.add(
     Counter = Counter + 1
   end
 )
+
+Handlers.add(
+  "reset",
+  Handlers.utils.hasMatchingTag("Action", "Reset"),
+  function(msg)
+    Ownable.onlyOwnerOrSelf(msg) -- must be sent either from the owner wallet or by opening this process in AOS
+    Counter = 0
+  end
+)

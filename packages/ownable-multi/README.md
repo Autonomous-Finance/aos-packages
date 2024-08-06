@@ -16,6 +16,23 @@ The aim is to make it possible for builders to simply "plug it in", much like on
 3. Adding / Removing owners
 4. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
 
+### Owner vs Self
+
+A **direct interaction** of the owner with their process can occur in multiple ways
+- message sent via *aoconnect* in a node script
+- message sent via the *ArConnect* browser extension (aoconnect-bsed)
+- message sent through the [AO.LINK UI](https://ao.link), using the "Write" tab on a process page (aoconnect-based)
+
+Unlike on EVM systems, where the owner interacts with the smart contract by sending a transaction directly to it, on AO we also have an **indirect interaction** between owner and process. It is common for an owner to interact with their process by opening it in AOS. Calling a handler of the process through an AOS evaluation like
+
+```lua
+Send({Target = ao.id, Action = 'Protected-Handler'})
+```
+
+will actually result in an `Eval` message with this code, where the **sender is the process itself**.
+
+This is why, additionally to the expected `Ownable.onlyOwner()`, we've included `Ownable.onlyOwnerOrSelf()` as an option for gating your handlers.
+
 ## Installation
 
 ```lua
@@ -41,6 +58,8 @@ Ownable = require "@autonomousfinance/ownable-multi" ({
   2. the ability to use the ownable-multi API
 
     Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+    Ownable.onlyOwnerOrSelf(msg) -- acts like a modifier in Solidity (errors on negative result)
 
     Ownable.addOwner(newOwner) -- performs the addition of a new owner
 

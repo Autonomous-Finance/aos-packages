@@ -6,4 +6,4 @@ else
 fi
 
 $BIN_PATH/luacheck main.lua
-$BIN_PATH/amalg.lua -s main.lua -o build/main.lua
+$BIN_PATH/amalg.lua -s main.lua -o build/main.lua 
