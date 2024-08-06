@@ -1,5 +1,5 @@
 local mod = {
-  version = '1.2.1'
+  version = '1.3.0'
 }
 
 mod.RENOUNCE_MANAGER = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
