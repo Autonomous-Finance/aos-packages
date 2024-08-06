@@ -205,9 +205,7 @@ end
 Handlers.add(
   "Register-Whitelisted-Subscriber",
   Handlers.utils.hasMatchingTag("Action", "Register-Whitelisted-Subscriber"),
-  function(msg)
-    Subscribable.handleRegisterWhitelistedSubscriber(msg) 
-  end
+  Subscribable.handleRegisterWhitelistedSubscriber
 )
 ```
 

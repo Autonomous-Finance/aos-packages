@@ -169,7 +169,7 @@ local function newmodule(pkg)
       Target = processId,
       ['Response-For'] = 'Subscribe-To-Topics',
       OK = "true",
-      ["Updated-Topics"] = subscriber.topics
+      ["Updated-Topics"] = json.encode(subscriber.topics)
     })
   end
 
@@ -190,7 +190,7 @@ local function newmodule(pkg)
       Target = processId,
       ["Response-For"] = 'Unsubscribe-From-Topics',
       OK = "true",
-      ["Updated-Topics"] = subscriber.topics
+      ["Updated-Topics"] = json.encode(subscriber.topics)
     })
   end
 

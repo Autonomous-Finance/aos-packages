@@ -178,7 +178,7 @@ local function newmodule(pkg)
       Target = processId,
       ['Response-For'] = 'Subscribe-To-Topics',
       OK = "true",
-      ["Updated-Topics"] = subscriber.topics
+      ["Updated-Topics"] = json.encode(subscriber.topics)
     })
   end
 
@@ -199,7 +199,7 @@ local function newmodule(pkg)
       Target = processId,
       ["Response-For"] = 'Unsubscribe-From-Topics',
       OK = "true",
-      ["Updated-Topics"] = subscriber.topics
+      ["Updated-Topics"] = json.encode(subscriber.topics)
     })
   end
 
@@ -281,6 +281,7 @@ local _ENV = _ENV
 package.preload[ "storage-db" ] = function( ... ) local arg = _G.arg;
 local sqlite3 = require("lsqlite3")
 local bint = require(".bint")(256)
+local json = require("json")
 
 local function newmodule(pkg)
   local mod = {}
@@ -337,7 +338,12 @@ local function newmodule(pkg)
       error("Failed to prepare SQL statement for checking subscriber: " .. DB:errmsg())
     end
     stmt:bind_names({ process_id = processId })
-    return sql.queryOne(stmt)
+    local result = sql.queryOne(stmt)
+    if result then
+      result.whitelisted = result.whitelisted == 1
+      result.topics = json.decode(result.topics)
+    end
+    return result
   end
 
   function sql.updateBalance(processId, amount, isCredit)
@@ -500,6 +506,7 @@ do
 local _ENV = _ENV
 package.preload[ "storage-vanilla" ] = function( ... ) local arg = _G.arg;
 local bint = require ".bint" (256)
+local json = require "json"
 local utils = require ".utils"
 
 local function newmodule(pkg)
@@ -509,9 +516,9 @@ local function newmodule(pkg)
   --[[
     {
       processId: ID = {
-        topics: string[],
+        topics: string, -- JSON (string representation of a string[])
         balance: string,
-        whitelisted: boolean -- if true, receives data without the need to pay
+        whitelisted: number -- 0 or 1 -- if 1, receives data without the need to pay
       }
     }
   ]]
@@ -522,13 +529,17 @@ local function newmodule(pkg)
   function mod.registerSubscriber(processId, whitelisted)
     mod.Subscribers[processId] = mod.Subscribers[processId] or {
       balance = "0",
-      topics = {},
-      whitelisted = whitelisted,
+      topics = json.encode({}),
+      whitelisted = whitelisted and 1 or 0,
     }
   end
 
   function mod.getSubscriber(processId)
     local data = mod.Subscribers[processId]
+    if data then
+      data.whitelisted = data.whitelisted == 1
+      data.topics = json.decode(data.topics)
+    end
     return data
   end
 
@@ -541,16 +552,17 @@ local function newmodule(pkg)
   -- SUBSCRIPTIONS
 
   function mod.subscribeToTopics(processId, topics)
-    local existingTopics = mod.Subscribers[processId].topics
+    local existingTopics = json.decode(mod.Subscribers[processId].topics)
     for _, topic in ipairs(topics) do
       if not utils.includes(topic, existingTopics) then
         table.insert(existingTopics, topic)
       end
     end
+    mod.Subscribers[processId].topics = json.encode(existingTopics)
   end
 
   function mod.unsubscribeFromTopics(processId, topics)
-    local existingTopics = mod.Subscribers[processId].topics
+    local existingTopics = json.decode(mod.Subscribers[processId].topics)
     for _, topic in ipairs(topics) do
       existingTopics = utils.filter(
         function(t)
@@ -559,6 +571,7 @@ local function newmodule(pkg)
         existingTopics
       )
     end
+    mod.Subscribers[processId].topics = json.encode(existingTopics)
   end
 
   -- NOTIFICATIONS
@@ -566,7 +579,7 @@ local function newmodule(pkg)
   function mod.getTargetsForTopic(topic)
     local targets = {}
     for k, v in pairs(mod.Subscribers) do
-      local mayReceiveNotification = mod.hasEnoughBalance(v.processId) or v.whitelisted
+      local mayReceiveNotification = mod.hasEnoughBalance(v.processId) or v.whitelisted == 1
       if mod.isSubscribedTo(k, topic) and mayReceiveNotification then
         table.insert(targets, k)
       end
@@ -584,7 +597,8 @@ local function newmodule(pkg)
     local subscription = mod.Subscribers[processId]
     if not subscription then return false end
 
-    for _, subscribedTopic in ipairs(subscription.topics) do
+    local topics = json.decode(subscription.topics)
+    for _, subscribedTopic in ipairs(topics) do
       if subscribedTopic == topic then
         return true
       end
@@ -681,10 +695,23 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
+package.loaded['subscribable'] = nil
+if not Subscribable then
+  -- INITIAL DEPLOYMENT of example.lua
 
-Subscribable = require 'subscribable' ({
-  useDB = false
-})
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = true,
+    useDB = false
+  })
+else
+  -- UPGRADE of example.lua
+
+  -- We reuse all existing package state
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = false,
+    existing = Subscribable
+  })
+end
 
 Handlers.add(
   'Increment',
@@ -727,6 +754,15 @@ Handlers.add(
       { 'even-counter', 'gm-greeting' },
       msg.Timestamp
     )
+  end
+)
+
+Handlers.add(
+  'Whitelist-Subscriber',
+  Handlers.utils.hasMatchingTag('Action', 'Whitelist-Subscriber'),
+  function(msg)
+    assert(msg.From == Owner, 'Only the owner can whitelist a subscriber')
+    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = true
   end
 )
 

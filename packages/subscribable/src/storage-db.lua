@@ -1,5 +1,6 @@
 local sqlite3 = require("lsqlite3")
 local bint = require(".bint")(256)
+local json = require("json")
 
 local function newmodule(pkg)
   local mod = {}
@@ -56,7 +57,12 @@ local function newmodule(pkg)
       error("Failed to prepare SQL statement for checking subscriber: " .. DB:errmsg())
     end
     stmt:bind_names({ process_id = processId })
-    return sql.queryOne(stmt)
+    local result = sql.queryOne(stmt)
+    if result then
+      result.whitelisted = result.whitelisted == 1
+      result.topics = json.decode(result.topics)
+    end
+    return result
   end
 
   function sql.updateBalance(processId, amount, isCredit)

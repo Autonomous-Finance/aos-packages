@@ -20,10 +20,23 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
+package.loaded['subscribable'] = nil
+if not Subscribable then
+  -- INITIAL DEPLOYMENT of example.lua
 
-Subscribable = require 'subscribable' ({
-  useDB = false
-})
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = true,
+    useDB = false
+  })
+else
+  -- UPGRADE of example.lua
+
+  -- We reuse all existing package state
+  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
+    initial = false,
+    existing = Subscribable
+  })
+end
 
 Handlers.add(
   'Increment',
@@ -66,6 +79,15 @@ Handlers.add(
       { 'even-counter', 'gm-greeting' },
       msg.Timestamp
     )
+  end
+)
+
+Handlers.add(
+  'Whitelist-Subscriber',
+  Handlers.utils.hasMatchingTag('Action', 'Whitelist-Subscriber'),
+  function(msg)
+    assert(msg.From == Owner, 'Only the owner can whitelist a subscriber')
+    Subscribable._storage.Subscribers[msg.Tags['Process-ID']].whitelisted = true
   end
 )
 

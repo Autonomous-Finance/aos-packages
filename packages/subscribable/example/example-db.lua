@@ -20,15 +20,16 @@ Counter = Counter or 0
 
 Greeting = Greeting or "Hello"
 
+package.loaded['subscribable'] = nil
 if not Subscribable then
-  -- INITIAL DEPLOYMENT of example-process.lua
+  -- INITIAL DEPLOYMENT of example-db.lua
 
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
     initial = true,
     useDB = true
   })
 else
-  -- UPGRADE of example-process.lua
+  -- UPGRADE of example-db.lua
 
   -- We reuse all existing package state
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
