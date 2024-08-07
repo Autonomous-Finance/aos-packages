@@ -14,11 +14,9 @@ local function newmodule(pkg)
       }
     }
   ]]
-  mod.Subscribers = pkg._storage.Subscribers or {} -- we preserve state from previously used package
+  mod.Subscribers = pkg._storage and pkg._storage.Subscribers or {} -- we preserve state from previously used package
 
   pkg._storage = mod
-
-  mod.Subscribers = mod.Subscribers or {}
 
   -- REGISTRATION & BALANCES
 
