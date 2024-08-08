@@ -3,9 +3,12 @@ local json = require "json"
 local utils = require ".utils"
 
 local function newmodule(pkg)
-  local mod = {}
+  local mod = {
+    Subscribers = pkg._storage and pkg._storage.Subscribers or {} -- we preserve state from previously used package
+  }
 
   --[[
+    mod.Subscribers :
     {
       processId: ID = {
         topics: string, -- JSON (string representation of a string[])
@@ -14,7 +17,6 @@ local function newmodule(pkg)
       }
     }
   ]]
-  mod.Subscribers = pkg._storage and pkg._storage.Subscribers or {} -- we preserve state from previously used package
 
   pkg._storage = mod
 
