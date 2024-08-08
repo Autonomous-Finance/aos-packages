@@ -218,13 +218,12 @@ local function newmodule(pkg)
 
   function pkg.notifySubscribers(topic, payload)
     local targets = pkg._storage.getTargetsForTopic(topic)
-    if #targets > 0 then
+    for _, target in ipairs(targets) do
       ao.send({
-        ['Target'] = ao.id,
-        ['Assignments'] = targets,
-        ['Action'] = 'Notify-On-Topic',
-        ['Topic'] = topic,
-        ['Data'] = json.encode(payload)
+        Target = target,
+        Action = 'Notify-On-Topic',
+        Topic = topic,
+        Data = json.encode(payload)
       })
     end
   end
