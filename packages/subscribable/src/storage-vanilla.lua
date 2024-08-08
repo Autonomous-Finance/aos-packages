@@ -75,10 +75,10 @@ local function newmodule(pkg)
 
   function mod.getTargetsForTopic(topic)
     local targets = {}
-    for k, v in pairs(mod.Subscribers) do
-      local mayReceiveNotification = mod.hasEnoughBalance(v.processId) or v.whitelisted == 1
-      if mod.isSubscribedTo(k, topic) and mayReceiveNotification then
-        table.insert(targets, k)
+    for processId, v in pairs(mod.Subscribers) do
+      local mayReceiveNotification = mod.hasEnoughBalance(processId) or v.whitelisted == 1
+      if mod.isSubscribedTo(processId, topic) and mayReceiveNotification then
+        table.insert(targets, processId)
       end
     end
     return targets
