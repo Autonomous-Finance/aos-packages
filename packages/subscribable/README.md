@@ -145,20 +145,17 @@ For upgradability we recommend assigning the required package to a global variab
 
 ## Upgrading your process
 
-You may want your lua process to be upgradable, which includes the ability to upgrade this package as it is used by your process. 
+You may want your AO process to be upgradable, which includes the ability to upgrade this package as it is used by your process. 
 
 In order to make this possible, this package gives you the option to `require` it as an upgrade.
 ```lua
-Subscribable = require "@autonomousfinance/subscribable"({  -- or require "<your-local-path>/subscribable", as explained above
-  initial = false,
-  existing = Subscribable
-})
+Subscribable = require "@autonomousfinance/subscribable"()  -- or require "<your-local-path>/subscribable", as explained above
 ```
-When doing that, you **pass in the previously used package module**, such that all the internal package state your process has been using so far, can be "adopted" by the new version of package.
+When doing that, the internal package state your process has been using so far (i.e. the subscribers and topics configuration), will be "adopted" by the new version of package. This only works **if you are using `Subscribable` as the name** for the global variable of the required package in your process.
 
 Examples of this can be found in `example/example.lua` and `example/example-db.lua`.
 
-❗️ The configuration for vanilla or db can only be used when you first require `subscribable`. Upgrades will not allow you to change flavour.
+❗️ The configuration for vanilla or db can only be used when you first require the package. Upgrades will not allow you to change flavour.
 
 ## Overriding Functionality
 
