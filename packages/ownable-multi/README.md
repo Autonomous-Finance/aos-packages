@@ -35,7 +35,7 @@ This is why, additionally to the expected `Ownable.onlyOwner()`, we've included 
 
 ## Usage
 
-This package can be used via APM or by including the final build into your project as a single lua file.
+This package can be used via APM installation through `aos` or via a pre-build APM download into your project directory.
 
 ### APM download & require locally
 
@@ -53,7 +53,15 @@ apm-tool download ownable-multi
 cp apm_modules/@autonomousfinance/ownable-multi/main.lua ./ownable-multi.lua
 ```
 
-Require the file locally from your main process file. The code in `example-process-once.lua` and `example-process-upgradable.lua` demonstrates how to achieve this. 
+Require the file locally from your main process file. 
+
+```lua
+Ownable = require("ownable-multi") ({
+  initialOwners = -- ... your initial owners, besides the main process Owner
+})
+```
+
+The code in `example-process-once.lua` and `example-process-upgradable.lua` demonstrates how to achieve this. 
 
 📝 Keep in mind, with this approach you will eventually need to amalgamate your `example-process.lua` and `ownable-multi.lua` into a single lua file that can be `.load`ed into your process via AOS. See `package/subscribable/build.sh` for an example of how to achieve this.
 
@@ -76,31 +84,32 @@ APM.install('@autonomousfinance/ownable-multi')
 3. Require this package in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
 
 ```lua
--- process.lua
-
 local initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
 Ownable = require "@autonomousfinance/ownable-multi" ({
   initialOwners = initialOwners
 })
-
---[[ 
-  now you have 
-  1. additional handlers added to Handlers.list
-  2. the ability to use the ownable-multi API
-
-    Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
-
-    Ownable.onlyOwnerOrSelf(msg) -- acts like a modifier in Solidity (errors on negative result)
-
-    Ownable.addOwner(newOwner) -- performs the addition of a new owner
-
-    Ownable.getOwnersArray() -- returns the current owners as an array
-
-    ...
-]]
 ```
 
-### No global state pollution
+### After requiring
+
+After the package is required into your main process, you have
+
+ 1. additional handlers added to Handlers.list
+ 2. the ability to use the `ownable-multi` API
+
+```lua
+-- ownable API
+
+Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+Ownable.onlyOwnerOrSelf(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+Ownable.addOwner(newOwner) -- performs the addition of a new owner
+
+Ownable.getOwnersArray() -- returns the current owners as an array
+```
+
+#### No global state pollution
 
 Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. The state needed to manage multiple owners is **encapsulated in the package module**.
 However, for upgradability we recommend assigning the required package to a global variable of your process (see below).

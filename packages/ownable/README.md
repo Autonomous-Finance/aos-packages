@@ -35,7 +35,7 @@ This is why, additionally to the expected `Ownable.onlyOwner()`, we've included 
 
 ## Usage
 
-This package can be used via APM or by including the final build into your project as a single lua file.
+This package can be used via APM installation through `aos` or via a pre-build APM download into your project directory.
 
 ### APM download & require locally
 
@@ -53,7 +53,13 @@ apm-tool download ownable
 cp apm_modules/@autonomousfinance/ownable/main.lua ./ownable.lua
 ```
 
-Require the file locally from your main process file. The code in `example-process.lua` demonstrates how to achieve this. 
+Require the file locally from your main process file. 
+
+```lua
+Ownable = require("ownable")
+```
+
+The code in `example-process.lua` demonstrates how to achieve this. 
 
 📝 Keep in mind, with this approach you will eventually need to amalgamate your `example-process.lua` and `ownable.lua` into a single lua file that can be `.load`ed into your process via AOS. See `package/subscribable/build.sh` for an example of how to achieve this.
 
@@ -76,26 +82,27 @@ APM.install('@autonomousfinance/ownable')
 3. Require this package via APM in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
 
 ```lua
--- process.lua
-
 Ownable = require("@autonomousfinance/ownable")
-
-  --[[ 
-    now you have 
-    1. additional handlers added to Handlers.list
-    2. the ability to use the ownable API
-      
-      Ownable.transferOwnership(newOwner) -- performs the transfer of ownership
-      
-      Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
-
-      Ownable.onlyOwnerOrSelf(msg) -- acts like a modifier in Solidity (errors on negative result)
-      ...
-  ]]
-
 ```
 
-### No global state pollution
+### After requiring
+
+After the package is required into your main process, you have
+
+ 1. additional handlers added to Handlers.list
+ 2. the ability to use the `ownable` API
+
+```lua
+-- ownable API
+
+Ownable.onlyOwner(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+Ownable.onlyOwnerOrSelf(msg) -- acts like a modifier in Solidity (errors on negative result)
+
+Ownable.transferOwnership(newOwner) -- performs the transfer of ownership
+```
+
+#### No global state pollution
 
 Except for the `_G.Handlers.list`, the package affects nothing in the global space of your project. For best upgradability, we recommend assigning the required package to a global variable of your process.
 
