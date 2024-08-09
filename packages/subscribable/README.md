@@ -28,69 +28,89 @@ The package comes in two flavours:
 5. notify subscribers to given topics with checks
 6. configure the payment token (gated to the process' `Owner`)
 
-## APM vs integrated code
+## Usage
 
-You can use this package via *APM* or by copying file `example/subscribable.lua` into your project, to be required locally and be made part of your build process.
+This package can be used via APM installation through `aos` or via a pre-build APM download into your project directory.
 
-Due to the current limitations of *APM*, for advanced development **we recommend taking** the _integrated code_ route.
+### APM download & require locally
 
-### APM
+Install `apm-tool` on your system. This cli tool allows you to download APM packages into your lua project.
 
-Installation is required beforehand 
+```shell
+npm i -g apm-tool
+```
+
+Downlad the package into your project as a single lua file:
+
+```shell
+cd your/project/directory
+apm-tool download ownable-multi
+cp apm_modules/@autonomousfinance/ownable-multi/main.lua ./ownable-multi.lua
+```
+
+Require the file locally from your main process lua file. 
+
+```lua
+Ownable = require("subscribable") ({
+  useDB = false -- using the vanilla flavour
+})
+```
+
+The code in `example.lua` and `example-db.lua` demonstrates how to achieve this. 
+
+📝 Keep in mind, with this approach you will eventually need to amalgamate your multiple lua files into a single lua file build that can be `.load`ed into your process via AOS. See `package/subscribable/build.sh` for an example of how to achieve this.
+
+### APM install & require from APM
+
+Connect with your process via `aos`. Perform the **steps 1 & 2 from your AOS client terminal**.
+
+1. Install APM in your process
+
+```lua
+.load client-tool.lua
+```
+
+2. Install this package via APM
 
 ```lua
 APM.install('@autonomousfinance/subscribable')
 ```
 
-Require by using the package name
+3. Require this package in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
 
 ```lua
-require "@autonomousfinance/subscribable"
-```
-
-### Integrated Code
-
-This is the approach we take in the `example` directory, where we have 2 example applications: `example.lua` and `example-db.lua`, both of which make use of the package.
-
-#### Steps:
-
-1. Copy `example.subscribable.lua` into your project. e.g. into `packages/subscribable.lua`.
-
-2. Require locally with the example path
-
-```lua
-require "packages/subscribable"
-```
-
-
-## Usage
-
-1. Require the `subscribable` package in your Lua script, while specifying whether you want the DB version.
-2. Initially and whenever needed, execute `.configTopicsAndChecks()` to configure the supported topics and corresponding checks.
-3. In your process handlers, whenever topic-relevant state changes have occurred, execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers.
-
-```lua
--- process.lua
-
-Subscribable = require "@autonomousfinance/subscribable" ({ -- or require "<your-local-path>/subscribable", as explained above
+Subscribable = require "@autonomousfinance/subscribable" ({
   useDB = false -- using the vanilla flavour
 })
+```
 
---[[ 
-  now you have 
-  1. additional handlers added to Handlers.list
-  2. the ability to use the subscribable API
+### After requiring
 
-    - configTopicsAndChecks()
-    - checkNotifyTopic()
-    - checkNotifyTopics()
-    - getRegisteredSubscriber()
+After the package is required into your main process, you have
 
-    ...
-]]
+1. additional handlers added to Handlers.list
+2. the ability to use the `subscribable` API
 
+```lua
+Subscribable.configTopicsAndChecks()
+
+Subscribable.checkNotifyTopic()
+
+Subscribable.checkNotifyTopics()
+
+Subscribable.getRegisteredSubscriber()
+```
+
+Execute `.configTopicsAndChecks()` to configure the supported topics and corresponding checks. You can repeat this in the future as needed.
+
+In your process handlers, wherever topic-relevant state changes have occurred, you can execute `.notifyTopic()` or `.checkNotifyTopic()` to dispatch notifications to subscribers.
+
+Here is a simple example
+
+```lua
 Counter = Counter or 0
 
+-- configure topic
 Subscribable.configTopicsAndChecks({
   'even-counter',       -- topic name
   function()            -- a check function to determine if the event of the occurs & generate a notification payload

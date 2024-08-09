@@ -37,23 +37,43 @@ This is why, additionally to the expected `Ownable.onlyOwner()`, we've included 
 
 This package can be used via APM or by including the final build into your project as a single lua file.
 
-### Rquire locally
+### APM download & require locally
 
-The final package code is in `build/main.lua` . You can copy that file into your project, rename it to `ownable-multi.lua` (or similar) and require it locally.
+Install `apm-tool` on your system. This cli tool allows you to download APM packages into your lua project.
 
-The code in `example-process-once.lua` and `example-process-upgradable.lua` demonstrates how to achieve this. 
+```shell
+npm i -g apm-tool
+```
+
+Downlad the package into your project as a single lua file:
+
+```shell
+cd your/project/directory
+apm-tool download ownable-multi
+cp apm_modules/@autonomousfinance/ownable-multi/main.lua ./ownable-multi.lua
+```
+
+Require the file locally from your main process file. The code in `example-process-once.lua` and `example-process-upgradable.lua` demonstrates how to achieve this. 
 
 📝 Keep in mind, with this approach you will eventually need to amalgamate your `example-process.lua` and `ownable-multi.lua` into a single lua file that can be `.load`ed into your process via AOS. See `package/subscribable/build.sh` for an example of how to achieve this.
 
-### APM 
+### APM install & require from APM
 
-First you need to install APM in your process
+Connect with your process via `aos`. Perform the **steps 1 & 2 from your AOS client terminal**.
+
+1. Install APM in your process
 
 ```lua
-APM.install('@autonomousfinance/ownable')
+.load client-tool.lua
 ```
 
-Require this package in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
+2. Install this package via APM
+
+```lua
+APM.install('@autonomousfinance/ownable-multi')
+```
+
+3. Require this package in your Lua script. The resulting table contains the package API. The `require` statement also adds package-specific handlers into the `_G.Handlers.list` of your process.
 
 ```lua
 -- process.lua
