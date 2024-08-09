@@ -60,7 +60,6 @@ Require this package in your Lua script. The resulting table contains the packag
 
 local initialOwners = { 'abc1xyz', 'def2zyx'} -- other owners besides the process deployer
 Ownable = require "@autonomousfinance/ownable-multi" ({
-  initial = true,
   initialOwners = initialOwners
 })
 
@@ -92,12 +91,9 @@ You may want your lua process to be upgradable, which includes the ability to up
 
 In order to make this possible, this package gives you the option to `require` it as an upgrade.
 ```lua
-Ownable = require "@autonomousfinance/ownable-multi"({
-  initial = false,
-  existing = Ownable
-})
+Ownable = require "@autonomousfinance/ownable-multi" ()
 ```
-When doing that, you **pass in the previously used package module**, such that all the internal package state your process has been using so far, can be "adopted" by the new version of package.
+When doing that, the internal package state your process has been using so far (i.e. the multiple owners), will be "adopted" by the new version of package. This only works **if you are using `Ownable` as the name** for the global variable of the required package in your process.
 
 An example of this can be found in `example-process-upgradable.lua`.
 
