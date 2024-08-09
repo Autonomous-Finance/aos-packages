@@ -1,23 +1,23 @@
 local function newmodule(cfg)
-  assert(cfg.initial ~= nil, "cfg.initial is required: are you initializing or upgrading?") -- as a bug-safety measure, force the package user to be explicit
+  local pkg = Ownable or {}
 
-  local pkg = cfg.existing or {}
+  local isInitial = Ownable == nil
+  if isInitial then
+    pkg.Owners = {
+      [Owner] = true,
+    }
+    if cfg and cfg.otherOwners then
+      for _, owner in ipairs(cfg.otherOwners) do
+        pkg.Owners[owner] = true
+      end
+    end
+  end
 
-  pkg.version = '1.2.1'
+  pkg.version = '1.3.0'
 
   local json = require "json"
 
   pkg.RENOUNCE_MANAGER = pkg.RENOUNCE_MANAGER or '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
-
-  if cfg.initial then
-    -- accounts that can act as owners (key-value instead of array for simpler lookups)
-    pkg.Owners = {
-      [Owner] = true,
-    }
-    for _, owner in ipairs(cfg.otherOwners) do
-      pkg.Owners[owner] = true
-    end
-  end
 
   -- HANDLERS
 

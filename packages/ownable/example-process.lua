@@ -1,6 +1,5 @@
 Ownable = require "build.main"
--- Ownable = require "@autonomousfinance/ownable" -- when using the package with APM
-
+-- Ownable = require "@autonomousfinance/ownable"       -- requires installing with APM first
 Counter = Counter or 0
 
 Handlers.add(

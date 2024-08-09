@@ -5,7 +5,7 @@ local initialOwners = {
   ['acc123-xyz-321-etc'] = true
 }
 
--- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
+-- Ownable = require "@autonomousfinance/ownable-multi" ({      -- requires installing with APM first
 Ownable = require "build.main" ({
   initial = true,
   initialOwners = initialOwners

@@ -9,9 +9,8 @@ if not Ownable then
       The spawner's ID is implicitly one of the multiple owners
       ]]
   }
-  -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
+  -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- requires installing with APM first
   Ownable = require "build.main" ({
-    initial = true,
     otherOwners = otherOwners
   })
 else
@@ -20,11 +19,8 @@ else
   -- reset the import in order to be able to re-import
   package.loaded['build.main'] = nil
 
-  -- Ownable = require "@autonomousfinance/ownable-multi" ({      -- when actually using the package with APM
-  Ownable = require "build.main" ({
-    initial = false,
-    existing = Ownable
-  })
+  -- Ownable = require "@autonomousfinance/ownable-multi" ()      -- requires installing with APM first
+  Ownable = require "build.main" ()
 end
 
 Counter = Counter or 0
