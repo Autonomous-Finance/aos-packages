@@ -617,14 +617,13 @@ local function newmodule(cfg)
   local isInitial = Subscribable == nil
 
   -- for bug-prevention, force the package user to be explicit on initial require
-  assert(not isInitial or cfg.useDB ~= nil,
+  assert(not isInitial or cfg and cfg.useDB ~= nil,
     "cfg.useDb is required: are you using the sqlite version (true) or the Lua-table based version (false)?")
-
 
   local pkg = Subscribable or
       { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
-  pkg.version = '1.3.5'
+  pkg.version = '1.3.6'
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 
@@ -702,17 +701,13 @@ if not Subscribable then
   -- INITIAL DEPLOYMENT of example.lua
 
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = true,
     useDB = false
   })
 else
   -- UPGRADE of example.lua
 
   -- We reuse all existing package state
-  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = false,
-    existing = Subscribable
-  })
+  Subscribable = require 'subscribable' () -- when using the package with APM, require '@autonomousfinance/subscribable'
 end
 
 Handlers.add(

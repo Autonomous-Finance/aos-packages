@@ -25,17 +25,13 @@ if not Subscribable then
   -- INITIAL DEPLOYMENT of example-db.lua
 
   Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = true,
     useDB = true
   })
 else
   -- UPGRADE of example-db.lua
 
   -- We reuse all existing package state
-  Subscribable = require 'subscribable' ({ -- when using the package with APM, require '@autonomousfinance/subscribable'
-    initial = false,
-    existing = Subscribable
-  })
+  Subscribable = require 'subscribable' () -- when using the package with APM, require '@autonomousfinance/subscribable'
 end
 
 Handlers.add(

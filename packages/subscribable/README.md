@@ -73,7 +73,6 @@ require "packages/subscribable"
 -- process.lua
 
 Subscribable = require "@autonomousfinance/subscribable" ({ -- or require "<your-local-path>/subscribable", as explained above
-  initial = true,
   useDB = false -- using the vanilla flavour
 })
 
