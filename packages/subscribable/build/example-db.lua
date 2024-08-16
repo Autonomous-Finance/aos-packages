@@ -53,8 +53,8 @@ local function newmodule(pkg)
   end
 
   function pkg.handleRegisterWhitelistedSubscriber(msg)
-    if msg.From ~= Owner then
-      error('Only the owner is allowed to register whitelisted subscribers')
+    if msg.From ~= Owner and msg.From ~= ao.id then
+      error('Only the owner or the process itself is allowed to register whitelisted subscribers')
     end
 
     local processId = msg.Tags['Subscriber-Process-Id']
@@ -624,7 +624,7 @@ local function newmodule(cfg)
   local pkg = Subscribable or
       { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
-  pkg.version = '1.3.6'
+  pkg.version = '1.3.7'
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 

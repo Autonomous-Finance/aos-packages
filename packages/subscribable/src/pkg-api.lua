@@ -43,8 +43,8 @@ local function newmodule(pkg)
   end
 
   function pkg.handleRegisterWhitelistedSubscriber(msg)
-    if msg.From ~= Owner then
-      error('Only the owner is allowed to register whitelisted subscribers')
+    if msg.From ~= Owner and msg.From ~= ao.id then
+      error('Only the owner or the process itself is allowed to register whitelisted subscribers')
     end
 
     local processId = msg.Tags['Subscriber-Process-Id']

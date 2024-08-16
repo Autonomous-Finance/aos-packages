@@ -227,7 +227,7 @@ Handlers.add(
 
 ### Consider Access Control
 
-Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` are gated - they **restrict access** to the current `Owner` of the process. In order to give your process "Ownable" capabilities (managing ownership), consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
+Some API functions like `handleSetPaymentToken` and `handleRegisterWhitelistedSubscriber` are gated - they **restrict access** to the current `Owner` of the process, or the process itself. In order to give your process "Ownable" capabilities (managing ownership), consider using [ownable](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable) or [ownable-multi](https://github.com/Autonomous-Finance/aos-packages/tree/main/packages/ownable-multi).
 
 
 ## Subscription Model
