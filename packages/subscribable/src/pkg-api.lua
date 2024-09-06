@@ -107,6 +107,7 @@ local function newmodule(pkg)
         OK = "false",
         Data = error
       })
+      return
     end
 
     pkg.updateBalance(msg.Tags.Sender, msg.Tags.Quantity, true)
