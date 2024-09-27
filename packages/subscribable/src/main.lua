@@ -8,7 +8,7 @@ local function newmodule(cfg)
   local pkg = Subscribable or
       { useDB = cfg.useDB } -- useDB can only be set on initialization; afterwards it remains the same
 
-  pkg.version = '1.3.8'
+  pkg.version = '2.0.0'     -- requires an aos 2.0 process, uses msg.reply() etc.
 
   -- pkg acts like the package "global", bundling the state and API functions of the package
 

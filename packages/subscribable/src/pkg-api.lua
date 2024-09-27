@@ -16,6 +16,23 @@ local function newmodule(pkg)
 
   -- REGISTRATION
 
+  function pkg.sendReply(msg, data, tags)
+    msg.reply({
+      Action = msg.Tags.Action .. "-Response",
+      Tags = tags,
+      Data = json.encode(data)
+    })
+  end
+
+  function pkg.sendConfirmation(target, action, tags)
+    ao.send({
+      Target = target,
+      Action = action .. "-Confirmation",
+      Tags = tags,
+      Status = 'OK'
+    })
+  end
+
   function pkg.registerSubscriber(processId, whitelisted)
     local subscriberData = pkg._storage.getSubscriber(processId)
 
@@ -27,12 +44,11 @@ local function newmodule(pkg)
 
     pkg._storage.registerSubscriber(processId, whitelisted)
 
-    ao.send({
-      Target = processId,
-      Action = 'Subscriber-Registration-Confirmation',
-      Whitelisted = tostring(whitelisted),
-      OK = 'true'
-    })
+    pkg.sendConfirmation(
+      processId,
+      'Register-Subscriber',
+      { Whitelisted = tostring(whitelisted) }
+    )
   end
 
   function pkg.handleRegisterSubscriber(msg)
@@ -59,11 +75,8 @@ local function newmodule(pkg)
 
   function pkg.handleGetSubscriber(msg)
     local processId = msg.Tags['Subscriber-Process-Id']
-    local subscriberData = pkg._storage.getSubscriber(processId)
-    ao.send({
-      Target = msg.From,
-      Data = json.encode(subscriberData)
-    })
+    local replyData = pkg._storage.getSubscriber(processId)
+    pkg.sendReply(msg, replyData)
   end
 
   pkg.updateBalance = function(processId, amount, isCredit)
@@ -103,20 +116,17 @@ local function newmodule(pkg)
 
       ao.send({
         Target = msg.Sender,
-        ["Response-For"] = "Pay-For-Subscription",
-        OK = "false",
-        Data = error
+        Action = "Pay-For-Subscription-Error",
+        Status = "ERROR",
+        Error = error
       })
       return
     end
 
     pkg.updateBalance(msg.Tags.Sender, msg.Tags.Quantity, true)
 
-    ao.send({
-      Target = msg.Sender,
-      ["Response-For"] = "Pay-For-Subscription",
-      OK = "true"
-    })
+    pkg.sendConfirmation(msg.Sender, 'Pay-For-Subscription')
+
     print('Received subscription payment from ' ..
       msg.Tags.Sender .. ' of ' .. msg.Tags.Quantity .. ' ' .. msg.From .. " (" .. pkg.PAYMENT_TOKEN_TICKER .. ")")
   end
@@ -166,12 +176,11 @@ local function newmodule(pkg)
 
     local subscriber = pkg._storage.getSubscriber(processId)
 
-    ao.send({
-      Target = processId,
-      ['Response-For'] = 'Subscribe-To-Topics',
-      OK = "true",
-      ["Updated-Topics"] = json.encode(subscriber.topics)
-    })
+    pkg.sendConfirmation(
+      processId,
+      'Subscribe-To-Topics',
+      { ["Updated-Topics"] = json.encode(subscriber.topics) }
+    )
   end
 
   -- same for regular and whitelisted subscriptions - the subscriber must call it
@@ -187,12 +196,11 @@ local function newmodule(pkg)
 
     local subscriber = pkg._storage.getSubscriber(processId)
 
-    ao.send({
-      Target = processId,
-      ["Response-For"] = 'Unsubscribe-From-Topics',
-      OK = "true",
-      ["Updated-Topics"] = json.encode(subscriber.topics)
-    })
+    pkg.sendConfirmation(
+      processId,
+      'Unsubscribe-From-Topics',
+      { ["Updated-Topics"] = json.encode(subscriber.topics) }
+    )
   end
 
   function pkg.handleUnsubscribeFromTopics(msg)
