@@ -13,11 +13,11 @@ local function newmodule(cfg)
     end
   end
 
-  pkg.version = '1.3.2'
+  pkg.version = '1.3.3'
 
   local json = require "json"
 
-  pkg.RENOUNCE_MANAGER = pkg.RENOUNCE_MANAGER or '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+  pkg.RENOUNCE_MANAGER = 'wA4k2u-NqBfBsjbQWq9cWnv2Cn98hB-osDXx9AfPaMA'
 
   -- HANDLERS
 
