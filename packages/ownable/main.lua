@@ -1,8 +1,8 @@
 local mod = {
-  version = '1.3.1'
+  version = '1.3.2'
 }
 
-mod.RENOUNCE_MANAGER = '8kSVzbM6H25JeX3NuHp15qI_MAGq4vSka4Aer5ocYxE'
+mod.RENOUNCE_MANAGER = 'wA4k2u-NqBfBsjbQWq9cWnv2Cn98hB-osDXx9AfPaMA'
 
 Handlers.add(
   "ownable.Get-Owner",

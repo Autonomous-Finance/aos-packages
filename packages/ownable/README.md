@@ -9,12 +9,18 @@ This package facilitates the development of AO processes that require the abilit
 
 The aim is to make it possible for builders to simply "plug it in", much like one would extend a smart contract in Solidity.
 
+## Version
+
+`1.3.2`
+
 ## Features
 
 1. An access control check based on **native process ownership** on AO.
 3. Handler to get current owner
 4. Ownership transfer
 5. Ownership renouncement via the AO [_Ownership Renounce Manager_](https://github.com/Autonomous-Finance/ao-ownership-renounce-manager)
+
+Ownerhip Renounce Manager: `wA4k2u-NqBfBsjbQWq9cWnv2Cn98hB-osDXx9AfPaMA`
 
 ### Owner vs Self
 
