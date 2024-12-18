@@ -44,14 +44,14 @@ Downlad the package into your project as a single lua file:
 
 ```shell
 cd your/project/directory
-apm-tool download ownable-multi
-cp apm_modules/@autonomousfinance/ownable-multi/main.lua ./ownable-multi.lua
+apm download @autonomousfinance/subscribable
+cp apm_modules/@autonomousfinance/subscribable/source.lua ./subscribable.lua
 ```
 
 Require the file locally from your main process lua file. 
 
 ```lua
-Ownable = require("subscribable") ({
+Subscribable = require("subscribable") ({
   useDB = false -- using the vanilla flavour
 })
 ```

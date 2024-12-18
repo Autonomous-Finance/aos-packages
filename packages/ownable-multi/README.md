@@ -55,8 +55,8 @@ Downlad the package into your project as a single lua file:
 
 ```shell
 cd your/project/directory
-apm-tool download ownable-multi
-cp apm_modules/@autonomousfinance/ownable-multi/main.lua ./ownable-multi.lua
+apm download @autonomousfinance/ownable-multi
+cp apm_modules/@autonomousfinance/ownable-multi/source.lua ./ownable-multi.lua
 ```
 
 Require the file locally from your main process file. 

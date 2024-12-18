@@ -55,8 +55,8 @@ Downlad the package into your project as a single lua file:
 
 ```shell
 cd your/project/directory
-apm-tool download ownable
-cp apm_modules/@autonomousfinance/ownable/main.lua ./ownable.lua
+apm download @autonomousfinance/ownable
+cp apm_modules/@autonomousfinance/ownable/source.lua ./ownable.lua
 ```
 
 Require the file locally from your main process file. 
