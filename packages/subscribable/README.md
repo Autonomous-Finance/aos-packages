@@ -112,11 +112,11 @@ Counter = Counter or 0
 
 -- configure topic
 Subscribable.configTopicsAndChecks({
-  'even-counter',       -- topic name
-  function()            -- a check function to determine if the event of the occurs & generate a notification payload
-    if Counter % 2 == 0 then return true, {counter = Counter} end
-    return false
-  end
+  ['even-counter'] = {
+    checkFn = function() return Counter % 2==0 end,
+    payloadFn = function() return {counter = Counter} end,
+    description = 'Counter is even'
+  },
 })
 
 -- Updates to Counter
@@ -127,7 +127,7 @@ Handlers.add(
     -- state change
     Counter = Counter + 1
     -- notifications
-    sub.checkNotifyTopic('even-counter') -- sends out notifications based on check and payload from the topic event check function you configured
+    Subscribable.checkNotifyTopic('even-counter') -- sends out notifications based on check and payload from the topic event check function you configured
   end
 )
 ```
