@@ -1,5 +1,7 @@
 # subscribable
 
+> **⚠️ Archive Notice**: This package is part of an archived repository and is no longer maintained. Use at your own risk.
+
 ## Subscription provider capabilities for an AO process
 
 This package facilitates the development of AO processes that require the ability to register subscribers for events concerning specific topics. It effectively means that messages will be dispatched to subscribers whenever the topic-related events occur.
@@ -8,6 +10,10 @@ The package comes in two flavours:
 
 1. The **vanilla** version is based on **simple Lua tables**.
 2. The **DB** version is based on **sqlite3**, which is natively available on AO.
+
+## ⚠️ Security Note
+
+**Important**: This package includes a default test payment token (`8p7ApPZxC_37M06QHVejCQrKsHbcJEerd3jWNkDUWPQ` with ticker `BRKTST`) in the source code. **You must configure your own payment token** using `handleSetPaymentToken` before using this package in production. The default token is for testing purposes only.
 
 ## Features
 
