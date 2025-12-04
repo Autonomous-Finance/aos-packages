@@ -1,5 +1,7 @@
 # ownable-multi
 
+> **⚠️ Archive Notice**: This package is part of an archived repository and is no longer maintained. Use at your own risk.
+
 ## Multi-Owner Process Ownership & Access Control on AO
 
 This package facilitates the development of AO processes that require the ability to
